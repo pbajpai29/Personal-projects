@@ -9,6 +9,7 @@ library(knitr)
 library(summarytools)
 library(reshape)
 library(grepl)
+library(geojsonio)
 
 ### 2. Importing Files
 impath<-"/Users/pbajpai/Dropbox/Personal/Economics/Research/ias_analysis/"
@@ -24,9 +25,23 @@ education_data<-read_csv(paste0(impath,education_path))
 ias_full_data <- left_join(profile_data, education_data,experience_data, by = c("ID", "Source", "Service","Name", "Cadre"))
 ias_full_data <- distinct(ias_full_data, ID, .keep_all = TRUE)
 
-### 4. Filtering dataset
-surname <- c("Bajpai")
-filter(ias_full_data, str_detect(surname))
-bajpai <- filter(ias_full_data, grepl("Lalit", Name))
-ias_1972 <- ias_full_data %>% filter(Allotment_Year==1972) 
-xwtable(ias_1972$Name)
+### 4. Aggregate By State
+ias_state_data <- ias_full_data %>% 
+  group_by(Place_of_Domicile, Allotment_Year) %>%
+  summarise(Count = n_distinct(Place_of_Domicile, Allotment_Year)) %>% group_by(Place_of_Domicile) %>% 
+  summarise(Frequency = sum(Count)) %>% subset(Place_of_Domicile != "N.A." & Place_of_Domicile != "Not found")
+ 
+### 5. State wise Chloropeth
+spdf <- geojson_read("https://github.com/Subhash9325/GeoJson-Data-of-Indian-States/blob/master/Indian_States")
+
+
+ias_state_data <- ias_state_data %>%
+  ggplot(aes(x=Frequency))
+
+ias_state_data <- ias_state_data + geom_line(aes(y=Place_of_Domicile), colour="#7570B3")
+epi_mobility <- epi_mobility + geom_line(aes(y=case_sum.1), colour="#69b3a4")
+epi_mobility <- epi_mobility + ylab("7-day moving average of new cases") + scale_x_date(breaks = "4 month")  + theme_classic()
+
+epi_mobility <- epi_mobility + theme(axis.text=element_text(size=18), axis.title=element_text(size=20,face="bold"))
+
+ias_state_data
