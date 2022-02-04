@@ -25,7 +25,13 @@
 
 ### 1. Preparation
 
-### 2. Trend Analysis
+### 2. Creating Summary Stats
+
+### 3. High Resolution GGPlot 
+
+### 4. Runs/Balls Faced Analysis 
+
+
 
 
 ## NOTES
@@ -91,8 +97,9 @@ virat_df$Year <- year(virat_df$`Start Date`)
 # Cleaning opposition variable
 virat_df <- virat_df %>%  mutate(Opposition = gsub("v ", "", Opposition))
 
-# Exporting CSV
-write.csv(virat_df, paste0(cricket_output,"kohli.csv"))
+# Exporting cleaned test match for predictive model in CSV
+virat_df_test <- virat_df %>% filter(Match == "Test")
+write.csv(virat_df_test, paste0(cricket_output,"kohli_test.csv"))
 
 ##############################
 ##### 2. Creating Stats   ####
@@ -138,15 +145,14 @@ virat_plot <- ggplot(data=virat_df, aes(x=Year, y=Average, group = Opposition,
   
 
 virat_plot + geom_point() + theme_classic()  + scale_y_continuous(breaks = scales::pretty_breaks(n = 10)) 
-   
-virat_plot        
+       
 
 ########################################
 ##### 4. Runs/Balls Faced Analysis   ####
 ########################################  
 
 
-batsmanrunsLikelihood <- function(file, name="A Squarecut") {
+batsmanrunslikelihood <- function(file, name="A Squarecut") {
   
   Runs <- BF <-Mins <- Ground <-Wkts <- NULL
   batsman <- clean(file)
@@ -184,5 +190,6 @@ batsmanrunsLikelihood <- function(file, name="A Squarecut") {
   
 }
 
-batsmanrunsLikelihood(paste0(cricket_output,"kohli.csv"),"Virat Kohli")
+
+batsmanrunslikelihood(paste0(cricket_output,"kohli_test.csv"),"Virat Kohli")
 
