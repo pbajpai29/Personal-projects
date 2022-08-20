@@ -1,0 +1,76 @@
+---
+title: "Impact of Transit System Expansions"
+author: "Pulkit Bajpai"
+date: "2022-08-13"
+output:
+  beamer_presentation:
+    theme: "AnnArbor"
+    colortheme: "dolphin"
+    fonttheme: "structurebold"
+institute: World Bank
+fontsize: 10pt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Background (1/2)
+- Developing countries have surplus demand for infrastructural expansion, power and real estate assets, coupled with steep fiscal constraints
+- Specifically in India, estimate public expenditure on economic infrastructure is estimated to be around **$1.4 trillion over the next five years** (IBEF, 2022)
+- Investment in rapid transit systems currently comprise approximately **20% of total infrastructural investment** in India (Ministry of Finance, 2022)
+- Urban transit systems offer the prospect of carrying the most passengers in the densest urban locations but have particularly
+large costs
+- Existing literature has identified multiple channels of impact of urban mass transit projects. 
+
+
+## Background (2/2)
+- These include **shorter commuting times** (Kanh and Baum-Snow, 2000), **increase in labor force participation** (Black, Kolesnikova and Taylor, 2014), **reduction in traffic congestion** (Anderson and Blause, 2014), **increase in real estate value and amenities** (Gupta, 2020;  Kahn, 2007)
+- The mass transit landscape in India is experiencing a massive push in investments, particularly in Tier 2 cities
+- However with **limited ridership**, **sub-optimal pricing models**, and **significant debt turnover**, there is limited evidence about the utility, cost-benefit and general equilibrium impact of these creating/expanding mass transit systems
+- Given the absence of such a research in a developing country context, the Indian case provides an opportunity to provide **policy relevant evidence** on infrastructural investment in low capacity and fiscally constrained geographies
+
+
+
+## Brief Literature Review 
+
+- Gupta, 2020, uses a Difference-in-Difference method to measure the benefit of the Second Avenue Subway extension in New York City. 
+- They find an **8% price increases**, creating **$6 billion in new property value**. They also observe **substantial reductions in commuting time** especially among subway users.
+- Gandhi, 2013, study the **determinants of rental prices** including planned metro construction in Mumbai, and find significant impact on rental price rise on account of **anticipation affects of the metro construction**
+- Fesselmeyer, 2017, estimate the **network externality** of Singapore's public transit system by examining the **effects of its expansion on the housing market**. 
+ - They find an **increase in the price of apartments within 0.5 km of a pre-expansion
+station by 1.6% to 2.1% relative to apartments that were further away from a
+station**. 
+- Back of the envelope calculation suggest an increased value of at least **S$386 million, which is equivalent to about 8% of the estimated S$5** billion cost of the expansion
+
+## Feasibility of the India Case
+- 24 cities planning to construct new rapid metro systems 
+- Existing metro systems in large metropolises, such as Delhi and Kolkata, have relatively ageing metro systems and require rapid renovation, overhauling and expansion of existing structures (some of these developments are already underway)
+- More specifically, the Delhi Metro system offers a unique opportunity to establish causal impact of rapid transit projects due to its multiple, time varying and often parrallel connectivity expansion
+- The Delhi Metro covers an area 390 square kilometers, with a daily ridership of an estimated 5 million (pre-covid) and offers a convenient, well-connected, relatively cost effective and safe transport system. Representative map below -
+
+![image info](/Users/pbajpai/Desktop/metro_map.png){width=150}
+
+## Potential areas of focus
+
+- Rental valuations and estimating value creation
+- Traffic congestion 
+- Ambient air pollution (exploring potential linkage with dynamics of traffic change)
+- Estimating environmental costs of line expansions
+- Assessing the spatial efficiency of existing lines vis-a-vis simulations of alternate metro lines in proximate neighborhoods, delimiting and quantifying urbanisation patterns, existing structures to measure the spatial efficiency of existing lines relative to counter-simulations. In summary, assesing local network inefficiencies (if any)
+- This can be further be extrapolated to then conduct back of the envelope calculations to assess potential traffic de-congestion and value creation with spatially more efficient lines
+- **Bonus** - causal impact on electoral outcomes in local body election - measuring incumbency positive bias,  anticipation effects etc.
+
+## Data Sources and Pitfalls
+
+- Rental data - sources via Government of Delhi circle rate (including historical circle rates), third party online aggregators such as 99acres.com, magicbricks etc. (**Issue** - Requires dealing with beauracracy and time consuming private data collection exercise but in progress)
+- Traffic congestion - Uber Movement, Google Maps, and Distance-Peak Hour calculations via Open Street Routing Machine (OSM) Route API 
+- Ambient Air Pollution - UChicago India Climate Lab, CSE-Indian Institute of Technology, Delhi
+- Spatial Efficiency - Scraping Delhi Metro line specific planning documents and meeting minutes to understand the current map of existing lines , identifying neighborhood distance benchmarks and creating grids (as potential counterfactuals) (**Issue** - Interesting process, time consuming but worth pursuing, challenging)
+- Plausible Methodologies - DID, Network Topography, Road network optimizations (**TO BE DISCUSSED**) 
+
+## Conclusion
+- First of its kind research looking at the wide spectrum of topics in a developing country
+- Policy relevant insights to gauge the cost and benefits of infrastructural expansion in contexts that are particularly fiscally constrained
+- Potentially, novel research to understand the efficiency and then (hopefully) predicting optimal network routes for mass transit systems
+
