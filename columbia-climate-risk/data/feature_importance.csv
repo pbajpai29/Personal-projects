@@ -1,0 +1,16 @@
+feature,importance
+year,0.399945
+month,0.370722
+weather_stress,0.168802
+heat_index_approx,0.009718
+roll3_precip_mm,0.009308
+precip_in,0.009183
+precip_mm,0.007484
+roll7_precip_mm,0.007378
+extreme_rain,0.005119
+tmax_f,0.002708
+tmax_c,0.002188
+windspeed_kmh,0.002121
+dow,0.001117
+lag1_precip_mm,0.001103
+precip_hours,0.001097

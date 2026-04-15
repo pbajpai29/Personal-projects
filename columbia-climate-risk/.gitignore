@@ -1,0 +1,6 @@
+# Commit data/ CSVs so Streamlit Cloud can load them without re-running pipeline
+# Only exclude large raw dumps or secrets
+__pycache__/
+*.pyc
+.env
+data/*.json
