@@ -85,6 +85,7 @@ def run_pipeline_if_needed():
         ("Downloading real MTA incident data…",     ["python", str(BASE / "02_download_mta.py")]),
         ("Merging datasets…",                       ["python", str(BASE / "03_merge_process.py")]),
         ("Running ML analysis…",                    ["python", str(BASE / "04_ml_analysis.py")]),
+        ("Scoring station & line risk…",            ["python", str(BASE / "05_station_risk.py")]),
     ]
     progress = st.progress(0)
     for i, (msg, cmd) in enumerate(steps):
@@ -141,6 +142,16 @@ def load_ml_results():
 def load_corr_matrix():
     p = DATA_DIR / "correlation_matrix.csv"
     return pd.read_csv(p, index_col=0) if p.exists() else None
+
+@st.cache_data
+def load_station_risk():
+    p = DATA_DIR / "station_risk.csv"
+    return pd.read_csv(p) if p.exists() else None
+
+@st.cache_data
+def load_line_risk():
+    p = DATA_DIR / "line_risk.csv"
+    return pd.read_csv(p) if p.exists() else None
 
 
 # ---------------------------------------------------------------------------
@@ -563,6 +574,131 @@ economic multipliers are applied.
 
 
 # ---------------------------------------------------------------------------
+# Tab 6 — Station Risk Map
+# ---------------------------------------------------------------------------
+def tab_station_risk(station_df, line_df):
+    if station_df is None or line_df is None:
+        st.info("Run 05_station_risk.py to generate station and line risk scores.")
+        return
+
+    dim_choice = st.radio(
+        "Risk dimension",
+        ["composite_risk", "flood_risk", "heat_risk", "vulnerability", "economic_exposure"],
+        horizontal=True, index=0,
+    )
+
+    n_stations   = len(station_df)
+    n_critical   = int((station_df["composite_risk"] >= 8).sum())
+    n_high       = int(((station_df["composite_risk"] >= 6) & (station_df["composite_risk"] < 8)).sum())
+    top_line     = line_df.iloc[0]
+    avg_flood    = station_df["flood_risk"].mean()
+
+    c1, c2, c3, c4, c5 = st.columns(5)
+    kpi(c1, "Stations scored",    f"{n_stations}",            "MTA subway system")
+    kpi(c2, "Critical stations",  f"{n_critical}",            "composite ≥ 8")
+    kpi(c3, "High-risk stations", f"{n_high}",                "composite 6–8")
+    kpi(c4, "Highest-risk line",  f"{top_line['line']}",      f"score {top_line['composite_risk']:.2f}")
+    kpi(c5, "Avg flood risk",     f"{avg_flood:.2f}",         "system-wide (0–10)")
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ---- Map ----
+    st.markdown(f"##### Station Map — colored by {dim_choice.replace('_',' ')}")
+    fig = go.Figure(go.Scattermapbox(
+        lat=station_df["lat"], lon=station_df["lon"],
+        mode="markers",
+        marker=dict(
+            size=8,
+            color=station_df[dim_choice],
+            colorscale="RdYlGn_r",
+            cmin=float(station_df[dim_choice].min()),
+            cmax=float(station_df[dim_choice].max()),
+            colorbar=dict(title=dim_choice.replace("_", " ")),
+            opacity=0.85,
+        ),
+        text=[
+            f"<b>{r['station']}</b><br>"
+            f"Line: {r['primary_line']} ({r['borough']})<br>"
+            f"Structure: {r['structure']}<br>"
+            f"Composite: {r['composite_risk']:.2f}<br>"
+            f"Flood: {r['flood_risk']:.2f}  Heat: {r['heat_risk']:.2f}<br>"
+            f"Vuln: {r['vulnerability']:.2f}  Econ: {r['economic_exposure']:.2f}"
+            for _, r in station_df.iterrows()
+        ],
+        hoverinfo="text",
+    ))
+    fig.update_layout(
+        mapbox=dict(style="carto-positron",
+                    center=dict(lat=40.72, lon=-73.95), zoom=10),
+        height=560, margin=dict(l=0, r=0, t=10, b=0),
+        paper_bgcolor="white",
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    # ---- Line-level table + chart ----
+    c1, c2 = st.columns([3, 2])
+    with c1:
+        st.markdown("##### Line Risk Ranking")
+        lr = line_df.sort_values("composite_risk", ascending=True)
+        fig2 = go.Figure(go.Bar(
+            x=lr["composite_risk"], y=lr["line"], orientation="h",
+            marker=dict(color=lr["line_color"]),
+            text=[f"{v:.2f}" for v in lr["composite_risk"]],
+            textposition="outside",
+        ))
+        fig2.update_layout(
+            title="Composite Risk by Line (0–10)",
+            xaxis_title="Composite risk", yaxis_title="",
+            height=560, plot_bgcolor="white", paper_bgcolor="white",
+        )
+        st.plotly_chart(fig2, use_container_width=True)
+
+    with c2:
+        st.markdown("##### Top 15 Highest-Risk Stations")
+        top = station_df.nlargest(15, "composite_risk")[
+            ["station", "primary_line", "borough", "composite_risk"]
+        ].rename(columns={
+            "station": "Station", "primary_line": "Line",
+            "borough": "Boro", "composite_risk": "Score",
+        }).reset_index(drop=True)
+        st.dataframe(top, use_container_width=True, height=560, hide_index=True)
+
+    # ---- Risk component breakdown ----
+    st.markdown("##### Risk Component Breakdown by Line")
+    comps = line_df.sort_values("composite_risk", ascending=False)
+    fig3 = go.Figure()
+    for comp, color in [
+        ("flood_risk",        RAIN_COLOR),
+        ("heat_risk",         HEAT_COLOR),
+        ("vulnerability",     "#7C3AED"),
+        ("economic_exposure", ACCENT),
+    ]:
+        fig3.add_trace(go.Bar(
+            x=comps["line"], y=comps[comp], name=comp.replace("_"," "),
+            marker_color=color,
+        ))
+    fig3.update_layout(
+        barmode="group", title="Risk Dimensions by Line",
+        xaxis_title="Line", yaxis_title="Score (0–10)",
+        plot_bgcolor="white", paper_bgcolor="white",
+        legend=dict(orientation="h", y=-0.2),
+    )
+    st.plotly_chart(fig3, use_container_width=True)
+
+    with st.expander("Methodology"):
+        st.markdown("""
+**Risk dimensions (0–10 each):**
+- **Flood risk** — geographic flood exposure (coastal proximity, FEMA zones, post-Sandy reports) + data-driven uplift from real MTA incidents on heavy-rain days
+- **Heat risk** — urban heat island + underground station exposure + uplift from real extreme-heat-day incidents
+- **Vulnerability** — infrastructure age and structure type (underground +2.0, open cut +1.0, elevated +0.5)
+- **Economic exposure** — ridership-weighted loss potential (normalized to system max)
+
+**Composite** = 0.40·flood + 0.30·heat + 0.20·vuln + 0.10·econ
+
+**Sources:** MTA Sandy After-Action 2013, NYC Climate Risk 2023, FEMA FIRM maps, MTA 2023 Blue Book ridership, data.ny.gov station registry (39hk-dx4f).
+        """)
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 def main():
@@ -584,12 +720,14 @@ def main():
         st.error("Data not found. Refresh the page to trigger the pipeline.")
         return
 
-    line_df  = load_line_daily()
-    loss_df  = load_economic_loss()
-    fi_df    = load_feature_importance()
-    ml_res   = load_ml_results()
-    corr_mat = load_corr_matrix()
-    weather  = load_weather()
+    line_df      = load_line_daily()
+    loss_df      = load_economic_loss()
+    fi_df        = load_feature_importance()
+    ml_res       = load_ml_results()
+    corr_mat     = load_corr_matrix()
+    weather      = load_weather()
+    station_risk = load_station_risk()
+    line_risk    = load_line_risk()
 
     d_start, d_end, selected_lines, rain_t, heat_t = sidebar_filters(sys_df)
 
@@ -600,12 +738,13 @@ def main():
     if "tmax_f" in sys_df.columns:
         sys_df["extreme_heat"] = (sys_df["tmax_f"] >= heat_t).astype(int)
 
-    t1, t2, t3, t4, t5 = st.tabs([
+    t1, t2, t3, t4, t5, t6 = st.tabs([
         "🌧  Overview",
         "🚇  MTA Performance",
         "📊  Correlations",
         "🤖  ML Model",
         "💵  Economic Impact",
+        "🗺  Station Risk Map",
     ])
     with t1: tab_overview(sys_df, weather, d_start, d_end, rain_t, heat_t)
     with t2:
@@ -614,6 +753,7 @@ def main():
     with t3: tab_correlations(sys_df, corr_mat, d_start, d_end)
     with t4: tab_ml(ml_res, fi_df, sys_df)
     with t5: tab_economic(loss_df, d_start, d_end)
+    with t6: tab_station_risk(station_risk, line_risk)
 
 
 if __name__ == "__main__":
