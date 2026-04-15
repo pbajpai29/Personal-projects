@@ -15,6 +15,9 @@ python 03_merge_process.py
 echo "Step 4 — ML analysis"
 python 04_ml_analysis.py
 
+echo "Step 5 — Station & line risk"
+python 05_station_risk.py
+
 echo ""
 echo "Pipeline complete. Launching dashboard…"
 streamlit run dashboard.py

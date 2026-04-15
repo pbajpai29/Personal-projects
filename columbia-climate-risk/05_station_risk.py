@@ -19,6 +19,7 @@ Output:
   data/line_risk.csv
 """
 
+import re
 import requests
 import numpy as np
 import pandas as pd
@@ -137,7 +138,6 @@ def compute_station_risk(
     for _, row in stations.iterrows():
         # Parse which lines this station serves (use daytime_routes if available)
         routes_str = row["routes"] if row["routes"] else row["line"]
-        import re
         lines = [t.strip() for t in re.split(r"[\s,]+", routes_str.upper()) if t.strip()]
         if not lines:
             continue
@@ -224,7 +224,6 @@ def compute_line_risk(station_risk: pd.DataFrame) -> pd.DataFrame:
             "ridership_k":      LINE_RIDERSHIP.get(line, 0),
         })
 
-    import re
     return pd.DataFrame(records).sort_values("composite_risk", ascending=False)
 
 
@@ -253,8 +252,6 @@ def main():
     print(f"\n  Top 5 highest-risk lines:")
     print(line_risk[["line","composite_risk","risk_label","flood_risk","heat_risk"]].head(5).to_string(index=False))
 
-
-import re   # needed at module level for compute_line_risk
 
 if __name__ == "__main__":
     main()
