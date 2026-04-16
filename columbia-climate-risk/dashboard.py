@@ -987,26 +987,6 @@ def main():
     )
     st.plotly_chart(fig_map, use_container_width=True)
 
-    # Line risk ranking
-    st.markdown(f"""
-    <div class="section-label" style="padding-top:1.5rem">LINE RISK RANKING</div>
-    """, unsafe_allow_html=True)
-
-    lr = lrisk_df.sort_values("flood_risk", ascending=True)
-    fig_lr = go.Figure(go.Bar(
-        x=lr["flood_risk"], y=lr["line"], orientation="h",
-        marker=dict(color=lr["line_color"]),
-        text=[f"{v:.1f}" for v in lr["flood_risk"]],
-        textposition="outside",
-        textfont=dict(size=10, color=TEXT_DIM,
-                      family="'JetBrains Mono', monospace"),
-    ))
-    styled_fig(fig_lr, height=560, showlegend=False,
-               title=dict(text="Flood Risk Score by Subway Line",
-                          font=dict(size=14, color=TEXT_DIM)),
-               xaxis=dict(range=[0, 10], gridcolor=MUTED))
-    st.plotly_chart(fig_lr, use_container_width=True)
-
     # Component breakdown
     comps = lrisk_df.sort_values("flood_risk", ascending=False)
     fig_comp = go.Figure()
@@ -1037,76 +1017,88 @@ def main():
       <div class="section-label">07</div>
       <h3>Data, Sources & Methodology</h3>
 
-      <div style="margin-top:1.5rem;">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:2.5rem; margin-top:1.5rem;">
+        <div>
+          <p style="color:{TEAL};font-weight:600;font-size:15px;margin-bottom:10px;">Data Sources</p>
 
-        <p style="color:{TEXT};font-weight:500;margin-bottom:8px;">Weather Data</p>
-        <p>Daily precipitation, temperature, wind speed, and derived variables
-        from <a href="https://open-meteo.com" style="color:{TEAL}">Open-Meteo</a>
-        historical API. NYC Central Park station, 2020-2024. Variables include
-        heat index approximation, 3/7-day rolling precipitation, lagged terms,
-        and weather stress composite indices.</p>
+          <p style="color:{TEXT};font-weight:500;margin-bottom:4px;font-size:13px;">Weather</p>
+          <p style="font-size:13px;">Daily precipitation, temperature, wind speed from
+          <a href="https://open-meteo.com" style="color:{TEAL}">Open-Meteo</a> historical API.
+          NYC Central Park station, 2020-2024. Derived variables: heat index, 3/7-day rolling
+          precipitation, lagged terms, weather stress composite.</p>
 
-        <p style="color:{TEXT};font-weight:500;margin-bottom:8px;margin-top:1.2rem;">MTA Performance Data</p>
-        <p>Monthly performance totals from
-        <a href="https://data.ny.gov" style="color:{TEAL}">data.ny.gov</a>
-        datasets g937-7k7c (subway performance) and 9zbp-wz3y (service alerts),
-        disaggregated to daily resolution using weather-aware statistical downscaling.
-        Station coordinates from the MTA GTFS registry (39hk-dx4f).</p>
+          <p style="color:{TEXT};font-weight:500;margin-bottom:4px;margin-top:1rem;font-size:13px;">MTA Performance</p>
+          <p style="font-size:13px;">Monthly totals from
+          <a href="https://data.ny.gov" style="color:{TEAL}">data.ny.gov</a>:
+          g937-7k7c (subway performance), 9zbp-wz3y (service alerts).
+          Disaggregated to daily using weather-aware statistical downscaling.
+          Station locations from MTA GTFS registry (39hk-dx4f).</p>
 
-        <p style="color:{TEXT};font-weight:500;margin-bottom:8px;margin-top:1.2rem;">Risk Scoring Model</p>
-        <p>Station-level risk scores across three dimensions (0-10 each):</p>
-        <ul>
-          <li><span class="c-teal">Flood risk</span>: FEMA FIRM zone exposure, coastal proximity, post-Sandy flood history, plus data-driven incident uplift on heavy rain days</li>
-          <li><span class="c-red">Heat risk</span>: urban heat island intensity, underground station heat trapping, plus incident uplift from extreme heat days</li>
-          <li><span class="c-yellow">Economic exposure</span>: ridership-weighted loss potential normalised to system max (MTA 2023 Blue Book)</li>
-        </ul>
+          <p style="color:{TEXT};font-weight:500;margin-bottom:4px;margin-top:1rem;font-size:13px;">Risk Scoring</p>
+          <p style="font-size:13px;">496 stations scored 0-10 on three dimensions:</p>
+          <ul style="font-size:13px;margin-top:4px;">
+            <li><span class="c-teal">Flood risk</span> &mdash; FEMA FIRM zones, coastal proximity, post-Sandy history, rain-day incident uplift</li>
+            <li><span class="c-red">Heat risk</span> &mdash; urban heat island, underground trapping, heat-day incident uplift</li>
+            <li><span class="c-yellow">Economic exposure</span> &mdash; ridership-weighted loss potential (MTA 2023 Blue Book)</li>
+          </ul>
+        </div>
 
-        <p style="color:{TEXT};font-weight:500;margin-bottom:8px;margin-top:1.2rem;">Economic Loss Model</p>
-        <p>Direct losses: excess incidents x load factor (95 pax) x P(affected) (35%)
-        x value of time ($18.50/hr, NYC DOT 2023) x excess delay.
-        Full cost estimate includes operational disruption multipliers, infrastructure
-        wear acceleration, emergency response costs, and ridership erosion factors
-        based on TCRP Report 86 and Cambridge Systematics transit cost models.</p>
+        <div>
+          <p style="color:{TEAL};font-weight:600;font-size:15px;margin-bottom:10px;">Methodology</p>
 
-        <p style="color:{TEXT};font-weight:500;margin-bottom:8px;margin-top:1.2rem;">ML Methodology</p>
-        <p>Ridge Regression and Random Forest with 5-fold time-series
-        cross-validation (expanding window). Feature set includes precipitation,
-        temperature, weather stress index, binary extreme event flags, rolling
-        averages, lag terms, and temporal encodings (month, day-of-week, year).</p>
+          <p style="color:{TEXT};font-weight:500;margin-bottom:4px;font-size:13px;">Economic Loss Model</p>
+          <p style="font-size:13px;">Excess incidents &times; load factor (95 pax) &times;
+          P(affected) (35%) &times; value of time ($18.50/hr, NYC DOT 2023) &times; excess delay.
+          Full estimate includes operational disruption multipliers, infrastructure wear,
+          emergency response, and ridership erosion (TCRP Report 86, Cambridge Systematics).</p>
 
-        <p style="color:{TEXT};font-weight:500;margin-bottom:8px;margin-top:1.2rem;">Climate Projections</p>
-        <p>Future scenarios based on NPCC 2024 (New York Panel on Climate Change)
-        assessment and NYC Climate Resiliency Design Guidelines v4.1.
-        SSP2-4.5 (moderate) and SSP5-8.5 (high emissions) pathways applied to
-        current loss rates with compound annual growth.</p>
+          <p style="color:{TEXT};font-weight:500;margin-bottom:4px;margin-top:1rem;font-size:13px;">ML Models</p>
+          <p style="font-size:13px;">Ridge Regression + Random Forest. 5-fold time-series CV
+          (expanding window). Features: precipitation, temperature, weather stress,
+          extreme event flags, rolling averages, lag terms, temporal encodings.</p>
 
-        <p style="color:{TEXT};font-weight:500;margin-bottom:8px;margin-top:1.5rem;">Bibliography</p>
-        <p style="font-size:12px; line-height:1.8;">
-        MTA. <em>Sandy After-Action Report</em>. Metropolitan Transportation Authority, 2013.<br>
-        NPCC. <em>New York City Panel on Climate Change 2024 Assessment</em>. Annals of the New York Academy of Sciences, 2024.<br>
-        NYC Mayor's Office. <em>Climate Resiliency Design Guidelines</em>, v4.1. 2023.<br>
-        FEMA. <em>Flood Insurance Rate Maps (FIRM)</em>, New York City. Federal Emergency Management Agency.<br>
-        Cambridge Systematics. <em>TCRP Report 86: Public Transportation Peer-to-Peer Knowledge Sharing</em>. Transit Cooperative Research Program.<br>
-        NYC DOT. <em>Value of Time in Transit Analysis</em>. NYC Department of Transportation, 2023.<br>
-        MTA. <em>Annual Subway Ridership Data (Blue Book)</em>. Metropolitan Transportation Authority, 2023.<br>
-        Zscheischler, J. et al. "Future climate risk from compound events." <em>Nature Climate Change</em>, 8, 469-477, 2018.<br>
-        Rosenzweig, C. et al. "Climate risk information for New York City infrastructure." <em>NPCC Technical Report</em>, 2019.<br>
-        </p>
-
+          <p style="color:{TEXT};font-weight:500;margin-bottom:4px;margin-top:1rem;font-size:13px;">Climate Projections</p>
+          <p style="font-size:13px;">NPCC 2024 + NYC Climate Resiliency Guidelines v4.1.
+          Three scenarios: Baseline (+2%/yr), SSP2-4.5 (+4.5%/yr), SSP5-8.5 (+8%/yr)
+          compound annual growth on current loss rates.</p>
+        </div>
       </div>
 
-      <div style="margin-top:2.5rem; padding-top:1.5rem; border-top:1px solid {MUTED};">
-        <p style="font-size:13px; color:{TEXT_DIM};">
-          Developed and maintained by
-          <a href="https://github.com/pbajpai29" style="color:{TEAL};font-weight:500;">PulkitB</a>.
-          This project is open-sourced and can be forked from
-          <a href="https://github.com/pbajpai29/Personal-projects" style="color:{TEAL};">pbajpai29/Personal-projects</a>.
-        </p>
-        <p style="font-size:12px; color:{MUTED}; margin-top:8px;">
+      <div style="margin-top:2rem; padding:1.2rem 1.5rem; background:{BG_CARD}; border-radius:6px; border-left:3px solid {ORANGE};">
+        <p style="color:{ORANGE};font-weight:600;font-size:13px;margin-bottom:8px;">Key Assumptions & Limitations</p>
+        <ul style="font-size:12px;line-height:1.8;margin:0;color:{TEXT_DIM};">
+          <li>Weather data from a single station (Central Park). Localised conditions at individual stations may differ.</li>
+          <li>MTA monthly data disaggregated to daily using statistical downscaling, not direct daily reporting.</li>
+          <li>Economic loss multiplier (27.5x) accounts for indirect costs (infrastructure damage, emergency response, ridership erosion) based on transit industry benchmarks. Direct rider-delay costs alone are lower.</li>
+          <li>Risk scores are expert-coded by line using published vulnerability literature, not derived from station-level sensor data.</li>
+          <li>Climate projections assume compound annual growth. Actual trajectories depend on emissions policy and adaptation investment.</li>
+          <li>ML models trained on 5 years of data. Performance may degrade outside observed weather ranges.</li>
+        </ul>
+      </div>
+
+      <div style="margin-top:2rem;">
+        <p style="color:{TEAL};font-weight:600;font-size:15px;margin-bottom:10px;">Bibliography</p>
+        <ol style="font-size:12px; line-height:2; color:{TEXT_DIM}; padding-left:1.2rem;">
+          <li>MTA. <em>Sandy After-Action Report</em>. Metropolitan Transportation Authority, 2013.</li>
+          <li>NPCC. <em>New York City Panel on Climate Change 2024 Assessment</em>. Annals of the New York Academy of Sciences, 2024.</li>
+          <li>NYC Mayor's Office. <em>Climate Resiliency Design Guidelines</em>, v4.1. 2023.</li>
+          <li>FEMA. <em>Flood Insurance Rate Maps (FIRM)</em>, New York City.</li>
+          <li>Cambridge Systematics. <em>TCRP Report 86: Public Transportation Peer-to-Peer Knowledge Sharing</em>. Transit Cooperative Research Program.</li>
+          <li>NYC DOT. <em>Value of Time in Transit Analysis</em>. NYC Department of Transportation, 2023.</li>
+          <li>MTA. <em>Annual Subway Ridership Data (Blue Book)</em>. Metropolitan Transportation Authority, 2023.</li>
+          <li>Zscheischler, J. et al. "Future climate risk from compound events." <em>Nature Climate Change</em>, 8, 469-477, 2018.</li>
+          <li>Rosenzweig, C. et al. "Climate risk information for New York City infrastructure." <em>NPCC Technical Report</em>, 2019.</li>
+        </ol>
+      </div>
+
+      <div style="margin-top:2rem; padding-top:1.5rem; border-top:1px solid {MUTED};">
+        <p style="font-size:12px; color:{MUTED};">
           Columbia University &nbsp;&middot;&nbsp; MS in Climate Finance
           &nbsp;&middot;&nbsp; Climate Risk &nbsp;&middot;&nbsp; 2026
           &nbsp;&nbsp;|&nbsp;&nbsp;
           Built with Python, scikit-learn, Plotly, Streamlit
+          &nbsp;&nbsp;|&nbsp;&nbsp;
+          <a href="https://github.com/pbajpai29/Personal-projects" style="color:{MUTED};">Source on GitHub</a>
         </p>
       </div>
     </div>
