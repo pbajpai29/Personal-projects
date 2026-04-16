@@ -440,14 +440,15 @@ def main():
     <div class="hero">
       <h1 class="fade-up">Climate risk is<br>reshaping how<br>New York <span class="c-red">moves</span>.</h1>
       <div class="subtitle fade-up fade-up-d1">
-        NYC weather is getting more extreme. More rain, more heat, more often.
-        And every time it happens, the subway system that 5.5 million people
-        rely on breaks down. We built this to show exactly how bad it is,
-        what it costs, and where it's headed.
+        Weather in NYC is getting more extreme due to climate change. More rain,
+        more heat, more often. And every time it happens, the subway system that
+        5.5 million people rely on gets broken down, delayed and disrupts lives.
+        We built this to show exactly how bad it is, what it costs to the MTA,
+        and what the future looks like.
       </div>
       <div class="attribution fade-up fade-up-d2">
-        Columbia University &nbsp;&middot;&nbsp; Climate Finance Program
-        &nbsp;&middot;&nbsp; 2025
+        Columbia University &nbsp;&middot;&nbsp; MS in Climate Finance
+        &nbsp;&middot;&nbsp; Climate Risk &nbsp;&middot;&nbsp; 2026
       </div>
     </div>
     """, unsafe_allow_html=True)
@@ -456,9 +457,9 @@ def main():
     # SECTION 1 — The weather is getting worse
     # ─────────────────────────────────────────────────────────────────────────
     section("01", "The weather is getting worse.",
-            "Five years of NYC weather data. The trend is clear: heavy rain events "
-            "and extreme heat days are happening more often. This isn't a blip. "
-            "It's the new normal.")
+            "We analyze five years of NYC weather data and the trends are rather obvious. "
+            "Heavy rain events and extreme heat days are happening more often and "
+            "becoming the new normal.")
 
     kpi_strip([
         ("Period", "2020 – 2024", "1,827 days"),
@@ -521,9 +522,9 @@ def main():
     # SECTION 2 — What that means for the subway
     # ─────────────────────────────────────────────────────────────────────────
     section("02", "When it rains, the subway breaks.",
-            "Real MTA incident data, 2020 to 2024. On heavy rain days the system "
-            "sees <strong>{:.0f}%</strong> more incidents than normal. That's not a "
-            "rounding error. That's a systemic failure.".format(rain_uplift))
+            "Real MTA incident and delays data from 2020 to 2024, show that on heavy "
+            "rain days the system sees <strong>{:.0f}%</strong> more incidents than normal. "
+            "This is a systemic preparedness problem towards extreme weather events.".format(rain_uplift))
 
     # Condition comparison bars
     fig_cond = go.Figure()
@@ -595,9 +596,10 @@ def main():
     # SECTION 3 — Correlation deep-dive
     # ─────────────────────────────────────────────────────────────────────────
     section("03", "Quantifying the link.",
-            "Statistical analysis confirms what commuters already know. "
-            "More rain means more delays. Higher temps mean more breakdowns. "
-            "The correlations are significant and consistent across all lines.")
+            "Statistical analysis confirms what all of us who have had the misfortune "
+            "of taking the trains on rainy days already know. More rain means more delays. "
+            "Higher temps mean more breakdowns. The correlations are significant and "
+            "consistent across all lines.")
 
     LABEL_MAP = {
         "precip_mm": "Precipitation (mm)",
@@ -704,8 +706,8 @@ def main():
     section("04", "Predicting disruptions with machine learning.",
             "We trained Ridge and Random Forest models on weather data to predict "
             "daily subway incidents. The biggest drivers? Weather stress index, "
-            "heavy rain flags, and extreme heat events. The model picks up what "
-            "the infrastructure can't handle.")
+            "heavy rain flags, and extreme heat events. The model demonstrates what "
+            "the transit infrastructure is underfunded to handle.")
 
     if ml:
         models = ml.get("models", {}).get("total_incidents", {})
@@ -820,7 +822,7 @@ def main():
             marker=dict(color=annual["loss"],
                         colorscale=[[0, BG_HINT], [1, ORANGE]],
                         showscale=False),
-            text=[f"${v/1e3:.0f}K" for v in annual["loss"]],
+            text=[f"${v/1e6:.1f}M" for v in annual["loss"]],
             textposition="outside",
             textfont=dict(color=TEXT_DIM, size=12,
                           family="'JetBrains Mono', monospace"),
@@ -839,8 +841,6 @@ def main():
         <div class="section-body">
           Three scenarios based on NPCC 2024 climate projections for NYC.
           Even the baseline assumption shows costs doubling by 2040.
-          Under high emissions, we're looking at losses that make
-          today's numbers look like a rounding error.
         </div>
         """, unsafe_allow_html=True)
 
@@ -1007,42 +1007,13 @@ def main():
                xaxis=dict(range=[0, 10], gridcolor=MUTED))
     st.plotly_chart(fig_lr, use_container_width=True)
 
-    # Top stations table
-    st.markdown(f"""
-    <div class="section-label" style="padding-top:0.5rem">HIGHEST RISK STATIONS</div>
-    """, unsafe_allow_html=True)
-
-    top_stn = stn_df.nlargest(15, "flood_risk")
-    rows_html = ""
-    for _, r in top_stn.iterrows():
-        flood_color = RED if r["flood_risk"] >= 8 else ORANGE if r["flood_risk"] >= 6 else YELLOW
-        heat_color = RED if r["heat_risk"] >= 8 else ORANGE if r["heat_risk"] >= 6 else YELLOW
-        rows_html += f"""<tr>
-            <td><strong>{r['station']}</strong></td>
-            <td><span style="color:{r['line_color']}">{r['primary_line']}</span></td>
-            <td>{r['borough']}</td>
-            <td><span style="color:{flood_color};font-weight:600">{r['flood_risk']:.1f}</span></td>
-            <td><span style="color:{heat_color};font-weight:600">{r['heat_risk']:.1f}</span></td>
-            <td>{r['economic_exposure']:.1f}</td>
-        </tr>"""
-
-    st.markdown(f"""
-    <table class="risk-table">
-      <thead><tr>
-        <th>Station</th><th>Line</th><th>Borough</th>
-        <th>Flood Risk</th><th>Heat Risk</th><th>Est. Losses</th>
-      </tr></thead>
-      <tbody>{rows_html}</tbody>
-    </table>
-    """, unsafe_allow_html=True)
-
     # Component breakdown
     comps = lrisk_df.sort_values("flood_risk", ascending=False)
     fig_comp = go.Figure()
     for comp, color, name in [
-        ("flood_risk",        BLUE,   "Flood Risk"),
+        ("flood_risk",        TEAL,   "Flood Risk"),
         ("heat_risk",         RED,    "Heat Risk"),
-        ("economic_exposure", ORANGE, "Est. Annual Losses"),
+        ("economic_exposure", YELLOW, "Est. Annual Losses"),
     ]:
         fig_comp.add_trace(go.Bar(
             x=comps["line"], y=comps[comp], name=name,
@@ -1066,64 +1037,62 @@ def main():
       <div class="section-label">07</div>
       <h3>Data, Sources & Methodology</h3>
 
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:2rem; margin-top:1.5rem;">
-        <div>
-          <p style="color:{TEXT};font-weight:500;margin-bottom:8px;">Weather Data</p>
-          <p>Daily precipitation, temperature, wind speed, and derived variables
-          from <a href="https://open-meteo.com" style="color:{TEAL}">Open-Meteo</a>
-          historical API. NYC Central Park station, 2020-2024. Variables include
-          heat index approximation, 3/7-day rolling precipitation, lagged terms,
-          and weather stress composite indices.</p>
+      <div style="margin-top:1.5rem;">
 
-          <p style="color:{TEXT};font-weight:500;margin-bottom:8px;margin-top:1.2rem;">MTA Performance Data</p>
-          <p>Monthly performance totals from
-          <a href="https://data.ny.gov" style="color:{TEAL}">data.ny.gov</a>
-          datasets g937-7k7c (subway performance) and 9zbp-wz3y (service alerts),
-          disaggregated to daily resolution using weather-aware statistical downscaling.
-          Station coordinates from the MTA GTFS registry (39hk-dx4f).</p>
+        <p style="color:{TEXT};font-weight:500;margin-bottom:8px;">Weather Data</p>
+        <p>Daily precipitation, temperature, wind speed, and derived variables
+        from <a href="https://open-meteo.com" style="color:{TEAL}">Open-Meteo</a>
+        historical API. NYC Central Park station, 2020-2024. Variables include
+        heat index approximation, 3/7-day rolling precipitation, lagged terms,
+        and weather stress composite indices.</p>
 
-          <p style="color:{TEXT};font-weight:500;margin-bottom:8px;margin-top:1.2rem;">Risk Scoring Model</p>
-          <p>Station-level risk scores across three dimensions (0-10 each):</p>
-          <ul>
-            <li><span class="c-blue">Flood risk</span>: FEMA FIRM zone exposure, coastal proximity, post-Sandy flood history, plus data-driven incident uplift on heavy rain days</li>
-            <li><span class="c-red">Heat risk</span>: urban heat island intensity, underground station heat trapping, plus incident uplift from extreme heat days</li>
-            <li><span class="c-orange">Economic exposure</span>: ridership-weighted loss potential normalised to system max (MTA 2023 Blue Book)</li>
-          </ul>
+        <p style="color:{TEXT};font-weight:500;margin-bottom:8px;margin-top:1.2rem;">MTA Performance Data</p>
+        <p>Monthly performance totals from
+        <a href="https://data.ny.gov" style="color:{TEAL}">data.ny.gov</a>
+        datasets g937-7k7c (subway performance) and 9zbp-wz3y (service alerts),
+        disaggregated to daily resolution using weather-aware statistical downscaling.
+        Station coordinates from the MTA GTFS registry (39hk-dx4f).</p>
 
-          <p style="color:{TEXT};font-weight:500;margin-bottom:8px;margin-top:1.2rem;">Economic Loss Model</p>
-          <p>Direct losses: excess incidents x load factor (95 pax) x P(affected) (35%)
-          x value of time ($18.50/hr, NYC DOT 2023) x excess delay.
-          Full cost estimate includes operational disruption multipliers, infrastructure
-          wear acceleration, emergency response costs, and ridership erosion factors
-          based on TCRP Report 86 and Cambridge Systematics transit cost models.</p>
-        </div>
+        <p style="color:{TEXT};font-weight:500;margin-bottom:8px;margin-top:1.2rem;">Risk Scoring Model</p>
+        <p>Station-level risk scores across three dimensions (0-10 each):</p>
+        <ul>
+          <li><span class="c-teal">Flood risk</span>: FEMA FIRM zone exposure, coastal proximity, post-Sandy flood history, plus data-driven incident uplift on heavy rain days</li>
+          <li><span class="c-red">Heat risk</span>: urban heat island intensity, underground station heat trapping, plus incident uplift from extreme heat days</li>
+          <li><span class="c-yellow">Economic exposure</span>: ridership-weighted loss potential normalised to system max (MTA 2023 Blue Book)</li>
+        </ul>
 
-        <div>
-          <p style="color:{TEXT};font-weight:500;margin-bottom:8px;">ML Methodology</p>
-          <p>Ridge Regression and Random Forest with 5-fold time-series
-          cross-validation (expanding window). Feature set includes precipitation,
-          temperature, weather stress index, binary extreme event flags, rolling
-          averages, lag terms, and temporal encodings (month, day-of-week, year).</p>
+        <p style="color:{TEXT};font-weight:500;margin-bottom:8px;margin-top:1.2rem;">Economic Loss Model</p>
+        <p>Direct losses: excess incidents x load factor (95 pax) x P(affected) (35%)
+        x value of time ($18.50/hr, NYC DOT 2023) x excess delay.
+        Full cost estimate includes operational disruption multipliers, infrastructure
+        wear acceleration, emergency response costs, and ridership erosion factors
+        based on TCRP Report 86 and Cambridge Systematics transit cost models.</p>
 
-          <p style="color:{TEXT};font-weight:500;margin-bottom:8px;margin-top:1.2rem;">Climate Projections</p>
-          <p>Future scenarios based on NPCC 2024 (New York Panel on Climate Change)
-          assessment and NYC Climate Resiliency Design Guidelines v4.1.
-          SSP2-4.5 (moderate) and SSP5-8.5 (high emissions) pathways applied to
-          current loss rates with compound annual growth.</p>
+        <p style="color:{TEXT};font-weight:500;margin-bottom:8px;margin-top:1.2rem;">ML Methodology</p>
+        <p>Ridge Regression and Random Forest with 5-fold time-series
+        cross-validation (expanding window). Feature set includes precipitation,
+        temperature, weather stress index, binary extreme event flags, rolling
+        averages, lag terms, and temporal encodings (month, day-of-week, year).</p>
 
-          <p style="color:{TEXT};font-weight:500;margin-bottom:8px;margin-top:1.5rem;">Bibliography</p>
-          <p style="font-size:12px; line-height:1.8;">
-          MTA. <em>Sandy After-Action Report</em>. Metropolitan Transportation Authority, 2013.<br>
-          NPCC. <em>New York City Panel on Climate Change 2024 Assessment</em>. Annals of the New York Academy of Sciences, 2024.<br>
-          NYC Mayor's Office. <em>Climate Resiliency Design Guidelines</em>, v4.1. 2023.<br>
-          FEMA. <em>Flood Insurance Rate Maps (FIRM)</em>, New York City. Federal Emergency Management Agency.<br>
-          Cambridge Systematics. <em>TCRP Report 86: Public Transportation Peer-to-Peer Knowledge Sharing</em>. Transit Cooperative Research Program.<br>
-          NYC DOT. <em>Value of Time in Transit Analysis</em>. NYC Department of Transportation, 2023.<br>
-          MTA. <em>Annual Subway Ridership Data (Blue Book)</em>. Metropolitan Transportation Authority, 2023.<br>
-          Zscheischler, J. et al. "Future climate risk from compound events." <em>Nature Climate Change</em>, 8, 469-477, 2018.<br>
-          Rosenzweig, C. et al. "Climate risk information for New York City infrastructure." <em>NPCC Technical Report</em>, 2019.<br>
-          </p>
-        </div>
+        <p style="color:{TEXT};font-weight:500;margin-bottom:8px;margin-top:1.2rem;">Climate Projections</p>
+        <p>Future scenarios based on NPCC 2024 (New York Panel on Climate Change)
+        assessment and NYC Climate Resiliency Design Guidelines v4.1.
+        SSP2-4.5 (moderate) and SSP5-8.5 (high emissions) pathways applied to
+        current loss rates with compound annual growth.</p>
+
+        <p style="color:{TEXT};font-weight:500;margin-bottom:8px;margin-top:1.5rem;">Bibliography</p>
+        <p style="font-size:12px; line-height:1.8;">
+        MTA. <em>Sandy After-Action Report</em>. Metropolitan Transportation Authority, 2013.<br>
+        NPCC. <em>New York City Panel on Climate Change 2024 Assessment</em>. Annals of the New York Academy of Sciences, 2024.<br>
+        NYC Mayor's Office. <em>Climate Resiliency Design Guidelines</em>, v4.1. 2023.<br>
+        FEMA. <em>Flood Insurance Rate Maps (FIRM)</em>, New York City. Federal Emergency Management Agency.<br>
+        Cambridge Systematics. <em>TCRP Report 86: Public Transportation Peer-to-Peer Knowledge Sharing</em>. Transit Cooperative Research Program.<br>
+        NYC DOT. <em>Value of Time in Transit Analysis</em>. NYC Department of Transportation, 2023.<br>
+        MTA. <em>Annual Subway Ridership Data (Blue Book)</em>. Metropolitan Transportation Authority, 2023.<br>
+        Zscheischler, J. et al. "Future climate risk from compound events." <em>Nature Climate Change</em>, 8, 469-477, 2018.<br>
+        Rosenzweig, C. et al. "Climate risk information for New York City infrastructure." <em>NPCC Technical Report</em>, 2019.<br>
+        </p>
+
       </div>
 
       <div style="margin-top:2.5rem; padding-top:1.5rem; border-top:1px solid {MUTED};">
@@ -1134,7 +1103,8 @@ def main():
           <a href="https://github.com/pbajpai29/Personal-projects" style="color:{TEAL};">pbajpai29/Personal-projects</a>.
         </p>
         <p style="font-size:12px; color:{MUTED}; margin-top:8px;">
-          Columbia University &nbsp;&middot;&nbsp; Climate Finance Program &nbsp;&middot;&nbsp; 2025
+          Columbia University &nbsp;&middot;&nbsp; MS in Climate Finance
+          &nbsp;&middot;&nbsp; Climate Risk &nbsp;&middot;&nbsp; 2026
           &nbsp;&nbsp;|&nbsp;&nbsp;
           Built with Python, scikit-learn, Plotly, Streamlit
         </p>
