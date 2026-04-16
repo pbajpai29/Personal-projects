@@ -51,7 +51,7 @@ PINK     = "#e587b6"
 PLOTLY_LAYOUT = dict(
     paper_bgcolor="rgba(0,0,0,0)",
     plot_bgcolor="rgba(0,0,0,0)",
-    font=dict(family="'Relative Mono 11 Pitch Pro', 'SF Mono', 'Menlo', monospace",
+    font=dict(family="'JetBrains Mono', 'SF Mono', monospace",
               color=TEXT, size=12),
     margin=dict(l=48, r=24, t=48, b=48),
     xaxis=dict(gridcolor=MUTED, zerolinecolor=MUTED, tickfont=dict(color=TEXT_DIM)),
@@ -67,7 +67,7 @@ def styled_fig(fig, **kw):
 # ── Global CSS ───────────────────────────────────────────────────────────────
 st.markdown(f"""
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap');
 
   /* ── Reset Streamlit chrome ────────────────────────────── */
   .stApp {{
@@ -88,24 +88,24 @@ st.markdown(f"""
 
   /* ── Typography ────────────────────────────────────────── */
   html, body, .stApp, .stMarkdown, p, li, span {{
-    font-family: 'Inter', 'Relative Book Pro', system-ui, sans-serif !important;
+    font-family: 'Space Grotesk', system-ui, sans-serif !important;
     color: {TEXT};
     -webkit-font-smoothing: antialiased;
   }}
   h1, h2, h3, h4, h5, h6 {{
-    font-family: 'Inter', system-ui, sans-serif !important;
+    font-family: 'Space Grotesk', system-ui, sans-serif !important;
     color: {TEXT} !important;
     font-weight: 600 !important;
     letter-spacing: -0.02em;
   }}
   .mono {{
-    font-family: 'IBM Plex Mono', 'Menlo', monospace !important;
+    font-family: 'JetBrains Mono', monospace !important;
     letter-spacing: 0.04em;
   }}
 
   /* ── Section headers ───────────────────────────────────── */
   .section-label {{
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: 'JetBrains Mono', monospace;
     font-size: 11px;
     font-weight: 500;
     letter-spacing: 0.12em;
@@ -150,7 +150,7 @@ st.markdown(f"""
     max-width: 620px;
   }}
   .hero .attribution {{
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: 'JetBrains Mono', monospace;
     font-size: 11px;
     color: {MUTED};
     letter-spacing: 0.08em;
@@ -174,7 +174,7 @@ st.markdown(f"""
     text-align: center;
   }}
   .kpi-cell .label {{
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: 'JetBrains Mono', monospace;
     font-size: 10px;
     letter-spacing: 0.1em;
     text-transform: uppercase;
@@ -205,7 +205,7 @@ st.markdown(f"""
   .risk-table {{
     width: 100%;
     border-collapse: collapse;
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: 'JetBrains Mono', monospace;
     font-size: 13px;
   }}
   .risk-table th {{
@@ -299,7 +299,7 @@ st.markdown(f"""
     color: {TEXT_DIM} !important;
     border: none !important;
     padding: 6px 14px !important;
-    font-family: 'IBM Plex Mono', monospace !important;
+    font-family: 'JetBrains Mono', monospace !important;
     font-size: 11px !important;
     letter-spacing: 0.06em !important;
     text-transform: uppercase !important;
@@ -314,7 +314,7 @@ st.markdown(f"""
 
   /* streamlit elements override */
   .stSelectbox label, .stRadio > label {{
-    font-family: 'IBM Plex Mono', monospace !important;
+    font-family: 'JetBrains Mono', monospace !important;
     font-size: 11px !important;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -438,7 +438,7 @@ def main():
     # ─────────────────────────────────────────────────────────────────────────
     st.markdown(f"""
     <div class="hero">
-      <h1 class="fade-up">Climate shocks are<br>reshaping how<br>New York <span class="c-red">moves</span>.</h1>
+      <h1 class="fade-up">Climate risk is<br>reshaping how<br>New York <span class="c-red">moves</span>.</h1>
       <div class="subtitle fade-up fade-up-d1">
         Extreme rainfall and heat events are intensifying. When they hit,
         the subway system that 5.5 million New Yorkers depend on daily
@@ -479,23 +479,23 @@ def main():
                                          font=dict(size=11, color=TEXT_DIM),
                                          xanchor="left"))
     styled_fig(fig_precip, height=280,
-               title=dict(text="Daily precipitation (mm)", font=dict(size=14, color=TEXT_DIM)),
+               title=dict(text="Daily Precipitation (mm)", font=dict(size=14, color=TEXT_DIM)),
                xaxis=dict(gridcolor=MUTED), yaxis=dict(gridcolor=MUTED))
     st.plotly_chart(fig_precip, use_container_width=True)
 
-    # Heat timeline
+    # Heat timeline (Celsius)
     fig_heat = go.Figure()
     fig_heat.add_trace(go.Scatter(
-        x=sys_df["date"], y=sys_df["tmax_f"],
+        x=sys_df["date"], y=sys_df["tmax_c"],
         mode="lines", line=dict(color=RED, width=1),
         fill="tozeroy", fillcolor="rgba(240,112,113,0.08)",
     ))
-    fig_heat.add_hline(y=90, line_dash="dot", line_color=RED, opacity=0.6,
-                       annotation=dict(text="Extreme heat threshold (90 F)",
+    fig_heat.add_hline(y=32.2, line_dash="dot", line_color=RED, opacity=0.6,
+                       annotation=dict(text="Extreme heat threshold (32.2 °C)",
                                        font=dict(size=11, color=TEXT_DIM),
                                        xanchor="left"))
     styled_fig(fig_heat, height=260,
-               title=dict(text="Daily max temperature (F)", font=dict(size=14, color=TEXT_DIM)),
+               title=dict(text="Daily Maximum Temperature (°C)", font=dict(size=14, color=TEXT_DIM)),
                showlegend=False)
     st.plotly_chart(fig_heat, use_container_width=True)
 
@@ -508,7 +508,7 @@ def main():
         <span style="font-size:11px;color:{MUTED}">Source: NYC Climate Resiliency Design Guidelines v4.1</span></div>
       </div>
       <div>
-        <div class="stat-callout c-red">+5.7 F</div>
+        <div class="stat-callout c-red">+3.2 °C</div>
         <div class="stat-context">projected rise in average summer<br>temperatures by mid-century<br>
         <span style="font-size:11px;color:{MUTED}">Source: NPCC 2024 Climate Assessment</span></div>
       </div>
@@ -533,12 +533,12 @@ def main():
     fig_cond.add_trace(go.Bar(
         x=labels, y=vals, marker_color=colors,
         text=[f"{v:.0f}" for v in vals], textposition="outside",
-        textfont=dict(color=TEXT, size=14, family="'IBM Plex Mono', monospace"),
+        textfont=dict(color=TEXT, size=14, family="'JetBrains Mono', monospace"),
     ))
     styled_fig(fig_cond, height=340, showlegend=False,
-               title=dict(text="Average daily incidents by weather condition",
+               title=dict(text="Average Daily Incidents by Weather Condition",
                           font=dict(size=14, color=TEXT_DIM)),
-               yaxis=dict(title="Incidents / day", gridcolor=MUTED))
+               yaxis=dict(title="Incidents per Day", gridcolor=MUTED))
     st.plotly_chart(fig_cond, use_container_width=True)
 
     # Monthly dual axis
@@ -558,12 +558,12 @@ def main():
         line=dict(color=TEAL, width=2),
     ), secondary_y=True)
     styled_fig(fig_dual, height=320,
-               title=dict(text="Monthly precipitation vs incidents",
+               title=dict(text="Monthly Precipitation vs Transit Incidents",
                           font=dict(size=14, color=TEXT_DIM)),
                legend=dict(orientation="h", y=-0.15, font=dict(size=11)))
-    fig_dual.update_yaxes(title_text="Precip (mm)", secondary_y=False,
+    fig_dual.update_yaxes(title_text="Precipitation (mm)", secondary_y=False,
                           gridcolor=MUTED, tickfont=dict(color=TEXT_DIM))
-    fig_dual.update_yaxes(title_text="Incidents", secondary_y=True,
+    fig_dual.update_yaxes(title_text="Total Incidents", secondary_y=True,
                           gridcolor="rgba(0,0,0,0)", tickfont=dict(color=TEXT_DIM))
     st.plotly_chart(fig_dual, use_container_width=True)
 
@@ -580,11 +580,11 @@ def main():
             text=[f"{v:+.0f}%" for v in uplift["pct"]],
             textposition="outside",
             textfont=dict(size=11, color=TEXT_DIM,
-                          family="'IBM Plex Mono', monospace"),
+                          family="'JetBrains Mono', monospace"),
         ))
         fig_up.add_vline(x=0, line_color=MUTED)
         styled_fig(fig_up, height=max(380, len(uplift)*22),
-                   title=dict(text="% more incidents on heavy-rain days, by line",
+                   title=dict(text="Incident Uplift on Heavy Rain Days by Subway Line",
                               font=dict(size=14, color=TEXT_DIM)),
                    showlegend=False)
         st.plotly_chart(fig_up, use_container_width=True)
@@ -598,6 +598,31 @@ def main():
             "Pearson correlations and regression analysis confirm a statistically "
             "significant relationship between weather intensity and transit disruptions.")
 
+    LABEL_MAP = {
+        "precip_mm": "Precipitation (mm)",
+        "tmax_f": "Max Temp (°F)",
+        "tmax_c": "Max Temp (°C)",
+        "heavy_rain": "Heavy Rain Day",
+        "extreme_heat": "Extreme Heat Day",
+        "extreme_rain": "Extreme Rain",
+        "roll7_precip_mm": "7-Day Rolling Precip",
+        "roll3_precip_mm": "3-Day Rolling Precip",
+        "weather_stress": "Weather Stress Index",
+        "total_incidents": "Total Incidents",
+        "avg_delay_min": "Avg Delay (min)",
+        "heat_wave_day": "Heat Wave Day",
+        "heat_wave_streak": "Heat Wave Streak",
+        "lag1_precip_mm": "Prior-Day Precip",
+        "lag2_precip_mm": "2-Day Lag Precip",
+        "precip_hours": "Precipitation Hours",
+        "windspeed_kmh": "Wind Speed (km/h)",
+        "heat_index_approx": "Heat Index",
+        "year": "Year",
+        "month": "Month",
+        "dow": "Day of Week",
+        "season": "Season",
+    }
+
     if corr is not None:
         wx = [c for c in ["precip_mm","tmax_f","heavy_rain","extreme_heat",
                            "roll7_precip_mm","weather_stress"] if c in corr.columns]
@@ -607,16 +632,19 @@ def main():
             [c for c in wx+tg if c in corr.columns]
         ].round(3)
 
+        display_x = [LABEL_MAP.get(c, c) for c in sub.columns]
+        display_y = [LABEL_MAP.get(r, r) for r in sub.index]
+
         fig_corr = go.Figure(go.Heatmap(
-            z=sub.values, x=sub.columns.tolist(), y=sub.index.tolist(),
+            z=sub.values, x=display_x, y=display_y,
             colorscale=[[0, BLUE], [0.5, BG], [1, RED]],
             zmin=-1, zmax=1,
             text=sub.values.round(2), texttemplate="%{text}",
             textfont=dict(size=11),
             colorbar=dict(title="r", tickfont=dict(color=TEXT_DIM)),
         ))
-        styled_fig(fig_corr, height=380,
-                   title=dict(text="Correlation matrix",
+        styled_fig(fig_corr, height=400,
+                   title=dict(text="Correlation Matrix — Weather vs Transit Disruption",
                               font=dict(size=14, color=TEXT_DIM)),
                    xaxis=dict(tickangle=30, tickfont=dict(size=10)))
         st.plotly_chart(fig_corr, use_container_width=True)
@@ -639,21 +667,21 @@ def main():
             line=dict(color=TEXT, width=2, dash="dash"), name="OLS trend",
         ))
         styled_fig(fig_sc, height=340, showlegend=False,
-                   title=dict(text=f"Precipitation vs incidents (r={r_val:.3f})",
+                   title=dict(text=f"Precipitation vs Incidents (r = {r_val:.3f})",
                               font=dict(size=13, color=TEXT_DIM)),
-                   xaxis=dict(title="Precip (mm)", gridcolor=MUTED),
-                   yaxis=dict(title="Incidents", gridcolor=MUTED))
+                   xaxis=dict(title="Daily Precipitation (mm)", gridcolor=MUTED),
+                   yaxis=dict(title="Daily Incidents", gridcolor=MUTED))
         st.plotly_chart(fig_sc, use_container_width=True)
 
     with col2:
-        sub3 = sys_df[["tmax_f","total_incidents"]].dropna()
-        r_val2, _ = pearsonr(sub3["tmax_f"], sub3["total_incidents"])
-        coefs2 = np.polyfit(sub3["tmax_f"], sub3["total_incidents"], 1)
-        x_ln2 = np.linspace(sub3["tmax_f"].min(), sub3["tmax_f"].max(), 50)
+        sub3 = sys_df[["tmax_c","total_incidents"]].dropna()
+        r_val2, _ = pearsonr(sub3["tmax_c"], sub3["total_incidents"])
+        coefs2 = np.polyfit(sub3["tmax_c"], sub3["total_incidents"], 1)
+        x_ln2 = np.linspace(sub3["tmax_c"].min(), sub3["tmax_c"].max(), 50)
 
         fig_sc2 = go.Figure()
         fig_sc2.add_trace(go.Scatter(
-            x=sub3["tmax_f"], y=sub3["total_incidents"], mode="markers",
+            x=sub3["tmax_c"], y=sub3["total_incidents"], mode="markers",
             marker=dict(color=RED, opacity=0.25, size=4),
         ))
         fig_sc2.add_trace(go.Scatter(
@@ -661,10 +689,10 @@ def main():
             line=dict(color=TEXT, width=2, dash="dash"),
         ))
         styled_fig(fig_sc2, height=340, showlegend=False,
-                   title=dict(text=f"Temperature vs incidents (r={r_val2:.3f})",
+                   title=dict(text=f"Max Temperature vs Incidents (r = {r_val2:.3f})",
                               font=dict(size=13, color=TEXT_DIM)),
-                   xaxis=dict(title="Max temp (F)", gridcolor=MUTED),
-                   yaxis=dict(title="Incidents", gridcolor=MUTED))
+                   xaxis=dict(title="Max Temperature (°C)", gridcolor=MUTED),
+                   yaxis=dict(title="Daily Incidents", gridcolor=MUTED))
         st.plotly_chart(fig_sc2, use_container_width=True)
 
     divider()
@@ -693,18 +721,19 @@ def main():
         with c1:
             if fi_df is not None and not fi_df.empty:
                 top_fi = fi_df.nlargest(10, "importance").sort_values("importance")
+                top_fi["label"] = top_fi["feature"].map(LABEL_MAP).fillna(top_fi["feature"])
                 fig_fi = go.Figure(go.Bar(
-                    x=top_fi["importance"], y=top_fi["feature"], orientation="h",
+                    x=top_fi["importance"], y=top_fi["label"], orientation="h",
                     marker=dict(color=top_fi["importance"],
                                 colorscale=[[0, BG_HINT], [1, TEAL]],
                                 showscale=False),
                     text=[f"{v:.3f}" for v in top_fi["importance"]],
                     textposition="outside",
                     textfont=dict(size=10, color=TEXT_DIM,
-                                  family="'IBM Plex Mono', monospace"),
+                                  family="'JetBrains Mono', monospace"),
                 ))
                 styled_fig(fig_fi, height=360, showlegend=False,
-                           title=dict(text="Feature importance (Random Forest)",
+                           title=dict(text="Feature Importance (Random Forest)",
                                       font=dict(size=13, color=TEXT_DIM)))
                 st.plotly_chart(fig_fi, use_container_width=True)
 
@@ -720,10 +749,10 @@ def main():
                 fig_pv.add_shape(type="line", x0=0, y0=0, x1=lim, y1=lim,
                                  line=dict(dash="dash", color=MUTED))
                 styled_fig(fig_pv, height=360, showlegend=False,
-                           title=dict(text="Predicted vs actual (RF)",
+                           title=dict(text="Predicted vs Actual Incidents (Random Forest)",
                                       font=dict(size=13, color=TEXT_DIM)),
-                           xaxis=dict(title="Actual", gridcolor=MUTED),
-                           yaxis=dict(title="Predicted", gridcolor=MUTED))
+                           xaxis=dict(title="Actual Incidents", gridcolor=MUTED),
+                           yaxis=dict(title="Predicted Incidents", gridcolor=MUTED))
                 st.plotly_chart(fig_pv, use_container_width=True)
 
         # Ridge coefficients
@@ -733,18 +762,19 @@ def main():
         wx_coefs = {k: v for k, v in coef_data.items() if k in wx_keys}
         if wx_coefs:
             cdf = pd.DataFrame(list(wx_coefs.items()), columns=["feature","coef"])
+            cdf["label"] = cdf["feature"].map(LABEL_MAP).fillna(cdf["feature"])
             cdf = cdf.sort_values("coef")
             fig_rc = go.Figure(go.Bar(
-                x=cdf["coef"], y=cdf["feature"], orientation="h",
+                x=cdf["coef"], y=cdf["label"], orientation="h",
                 marker_color=[BLUE if v>0 else TEXT_DIM for v in cdf["coef"]],
                 text=[f"{v:+.2f}" for v in cdf["coef"]],
                 textposition="outside",
                 textfont=dict(size=10, color=TEXT_DIM,
-                              family="'IBM Plex Mono', monospace"),
+                              family="'JetBrains Mono', monospace"),
             ))
             fig_rc.add_vline(x=0, line_color=MUTED)
             styled_fig(fig_rc, height=300, showlegend=False,
-                       title=dict(text="Ridge coefficients (standardised weather features)",
+                       title=dict(text="Ridge Regression Coefficients (Standardised Weather Features)",
                                   font=dict(size=13, color=TEXT_DIM)))
             st.plotly_chart(fig_rc, use_container_width=True)
 
@@ -782,13 +812,13 @@ def main():
             text=[f"${v/1e3:.0f}K" for v in annual["loss"]],
             textposition="outside",
             textfont=dict(color=TEXT_DIM, size=12,
-                          family="'IBM Plex Mono', monospace"),
+                          family="'JetBrains Mono', monospace"),
         ))
         styled_fig(fig_annual, height=320,
-                   title=dict(text="Annual economic loss from weather disruptions",
+                   title=dict(text="Annual Economic Loss from Weather Disruptions",
                               font=dict(size=14, color=TEXT_DIM)),
-                   xaxis=dict(title="Year", gridcolor=MUTED),
-                   yaxis=dict(title="Loss ($)", gridcolor=MUTED))
+                   xaxis=dict(title="", gridcolor=MUTED),
+                   yaxis=dict(title="Economic Loss (USD)", gridcolor=MUTED))
         st.plotly_chart(fig_annual, use_container_width=True)
 
         # Scenario projection
@@ -835,10 +865,10 @@ def main():
             line=dict(width=0), showlegend=False, hoverinfo="skip",
         ))
         styled_fig(fig_proj, height=380,
-                   title=dict(text="Projected annual weather-driven losses",
+                   title=dict(text="Projected Annual Weather-Driven Losses",
                               font=dict(size=14, color=TEXT_DIM)),
                    xaxis=dict(title="", gridcolor=MUTED),
-                   yaxis=dict(title="Annual loss ($)", gridcolor=MUTED),
+                   yaxis=dict(title="Annual Loss (USD)", gridcolor=MUTED),
                    legend=dict(orientation="h", y=-0.15, font=dict(size=11)))
         st.plotly_chart(fig_proj, use_container_width=True)
 
@@ -874,7 +904,7 @@ def main():
                 marker=dict(color=RED, size=7, symbol="circle"), name="Major event",
             ))
         styled_fig(fig_cum, height=300,
-                   title=dict(text="Cumulative economic loss", font=dict(size=14, color=TEXT_DIM)),
+                   title=dict(text="Cumulative Economic Loss Over Time", font=dict(size=14, color=TEXT_DIM)),
                    legend=dict(orientation="h", y=-0.15, font=dict(size=11)))
         st.plotly_chart(fig_cum, use_container_width=True)
 
@@ -957,10 +987,10 @@ def main():
         text=[f"{v:.2f}  {l}" for v, l in zip(lr["composite_risk"], lr["risk_label"])],
         textposition="outside",
         textfont=dict(size=10, color=TEXT_DIM,
-                      family="'IBM Plex Mono', monospace"),
+                      family="'JetBrains Mono', monospace"),
     ))
     styled_fig(fig_lr, height=560, showlegend=False,
-               title=dict(text="Composite risk score by line (0-10)",
+               title=dict(text="Composite Risk Score by Subway Line",
                           font=dict(size=14, color=TEXT_DIM)),
                xaxis=dict(range=[0, 10], gridcolor=MUTED))
     st.plotly_chart(fig_lr, use_container_width=True)
@@ -1009,7 +1039,7 @@ def main():
             marker_color=color, opacity=0.85,
         ))
     styled_fig(fig_comp, height=360, barmode="group",
-               title=dict(text="Risk dimensions by line",
+               title=dict(text="Risk Dimensions by Subway Line",
                           font=dict(size=14, color=TEXT_DIM)),
                xaxis=dict(title="", gridcolor=MUTED),
                yaxis=dict(title="Score (0-10)", gridcolor=MUTED),
@@ -1073,8 +1103,6 @@ def main():
           Columbia University &nbsp;&middot;&nbsp; Climate Finance Program &nbsp;&middot;&nbsp; 2025
           &nbsp;&nbsp;|&nbsp;&nbsp;
           Analysis: Python, scikit-learn, Plotly
-          &nbsp;&nbsp;|&nbsp;&nbsp;
-          Design inspired by <a href="https://carbonplan.org" style="color:{MUTED}">CarbonPlan</a>
         </p>
       </div>
     </div>
