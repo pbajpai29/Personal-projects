@@ -510,40 +510,74 @@ def main():
     }
     proj_years = [2025, 2030, 2040, 2050, 2060]
 
-    # --- One dramatic line chart: expected annual loss over time, all scenarios ---
+    # --- Dramatic line chart: all 4 scenarios + stacked area for combined ---
     fig_wc = go.Figure()
+
+    # Compute combined total EAL per year for stacked area
+    combined_eal = [0.0] * len(proj_years)
+    scenario_eals = {}
     for name, (cost, color, probs) in SCENARIOS.items():
-        eal_line = [cost * p / 1e6 for p in probs]  # in $M
+        eal_line = [cost * p / 1e6 for p in probs]
+        scenario_eals[name] = eal_line
+        combined_eal = [c + e for c, e in zip(combined_eal, eal_line)]
+
+    # Stacked area for combined total (background)
+    fig_wc.add_trace(go.Scatter(
+        x=proj_years, y=combined_eal,
+        fill="tozeroy", fillcolor="rgba(240,112,113,0.08)",
+        line=dict(width=1, color=MUTED, dash="dot"),
+        name="Combined Total", hovertemplate="Combined: $%{y:.0f}M/yr<extra></extra>",
+    ))
+
+    # Individual scenario lines on top
+    for name, (cost, color, probs) in SCENARIOS.items():
+        eal_line = scenario_eals[name]
         fig_wc.add_trace(go.Scatter(
             x=proj_years, y=eal_line,
             mode="lines+markers",
             name=name,
             line=dict(color=color, width=3),
-            marker=dict(size=8, color=color, line=dict(width=1, color=TEXT)),
+            marker=dict(size=9, color=color, line=dict(width=2, color=BG)),
             hovertemplate=f"<b>{name}</b><br>%{{x}}: $%{{y:.0f}}M/yr<extra></extra>",
         ))
-        # fill under each line
-        fig_wc.add_trace(go.Scatter(
-            x=proj_years, y=eal_line,
-            fill="tozeroy",
-            fillcolor=color.replace("#", "rgba(") if False else
-                f"rgba({int(color[1:3],16)},{int(color[3:5],16)},{int(color[5:7],16)},0.06)",
-            line=dict(width=0), showlegend=False, hoverinfo="skip",
-        ))
 
-    # Add a "current normal" reference line
-    fig_wc.add_hline(y=avg_annual_loss/1e6, line_dash="dot", line_color=TEXT_DIM, opacity=0.5,
-                     annotation=dict(text=f"Current annual weather losses (${avg_annual_loss/1e6:.1f}M)",
-                                     font=dict(size=10, color=TEXT_DIM),
-                                     xanchor="left", x=0.02))
+    # Current weather losses reference
+    fig_wc.add_hline(y=avg_annual_loss/1e6, line_dash="dash", line_color=YELLOW, opacity=0.7,
+                     annotation=dict(
+                         text=f"Today's weather losses: ${avg_annual_loss/1e6:.1f}M/yr",
+                         font=dict(size=11, color=YELLOW, family="'JetBrains Mono', monospace"),
+                         xanchor="left", x=0.01, bgcolor=BG_CARD, borderpad=4))
 
-    styled_fig(fig_wc, height=420,
-               title=dict(text="Wildcard Scenarios: Expected Annual Loss Projection",
+    # Annotate the 2060 endpoints
+    for name, (cost, color, probs) in SCENARIOS.items():
+        val_2060 = cost * probs[-1] / 1e6
+        fig_wc.add_annotation(
+            x=2060, y=val_2060,
+            text=f"${val_2060:.0f}M",
+            font=dict(size=11, color=color, family="'JetBrains Mono', monospace",
+                      weight="bold" if val_2060 > 500 else "normal"),
+            showarrow=True, arrowhead=0, arrowcolor=color, arrowwidth=1,
+            ax=45, ay=0, bgcolor=BG_CARD, borderpad=3,
+        )
+
+    # Combined 2060 annotation
+    fig_wc.add_annotation(
+        x=2060, y=combined_eal[-1],
+        text=f"<b>TOTAL: ${combined_eal[-1]:.0f}M/yr</b>",
+        font=dict(size=12, color=RED, family="'JetBrains Mono', monospace"),
+        showarrow=True, arrowhead=2, arrowcolor=RED, arrowwidth=2,
+        ax=50, ay=-30, bgcolor=BG_CARD, borderpad=4,
+    )
+
+    styled_fig(fig_wc, height=520,
+               title=dict(text="Wildcard Scenarios: Expected Annual Loss Projection to 2060",
                           font=dict(size=16, color=TEXT)),
-               xaxis=dict(title="", gridcolor=MUTED, dtick=10),
+               xaxis=dict(title="", gridcolor=MUTED, dtick=5,
+                          range=[2023, 2063]),
                yaxis=dict(title="Expected Annual Loss ($M)", gridcolor=MUTED),
-               legend=dict(orientation="h", y=-0.15, font=dict(size=12),
-                           bgcolor="rgba(0,0,0,0)"))
+               legend=dict(orientation="h", y=-0.12, font=dict(size=11),
+                           bgcolor="rgba(0,0,0,0)"),
+               margin=dict(l=48, r=80, t=56, b=56))
     st.plotly_chart(fig_wc, use_container_width=True)
 
     # --- Callout numbers ---
@@ -804,135 +838,225 @@ def main():
             "challenges and some are further ahead.")
 
     # Comparison data
-    CITIES = [
-        {"city": "New York City", "system": "MTA", "flood": "Extreme", "heat": "High",
-         "flood_score": 9.5, "heat_score": 7.5,
-         "key_fact": "Sandy inundated 150 stations, $5B damage. Sewer designed for 44mm/hr, storms now exceed 63mm/hr.",
-         "preparedness": "$7.6B post-Sandy hardening. 2024 Climate Roadmap with $6B 10-yr plan. $1.5B committed 2025-29.",
-         "flag": "focus"},
-        {"city": "Tokyo", "system": "Metro/Toei", "flood": "Low (managed)", "heat": "Moderate",
-         "flood_score": 3.0, "heat_score": 5.5,
-         "key_fact": "G-Cans underground reservoir prevents ~$930M flood damage annually. Triggered ~7 times/year.",
-         "preparedness": "World's first certified resilience bond ($330M, Oct 2025). Full AC network. Gold standard.",
-         "flag": "leader"},
-        {"city": "London", "system": "TfL / Underground", "flood": "High", "heat": "Extreme",
-         "flood_score": 7.5, "heat_score": 9.0,
-         "key_fact": "477 climate risks identified in 2024. Deep tube tunnels exceed 30 °C. Hit 40 °C in 2022.",
-         "preparedness": "First Climate Adaptation Plan (2023). AC trains for Piccadilly from 2025. Thames TE2100 plan.",
-         "flag": "peer"},
-        {"city": "Paris", "system": "RATP", "flood": "High", "heat": "High",
-         "flood_score": 7.0, "heat_score": 7.5,
-         "key_fact": "Seine flooding threatens central Metro. Only 10% green space. Most cars lack AC.",
-         "preparedness": "No comprehensive metro climate roadmap. Relies on citywide Seine flood plans. Cautionary parallel.",
-         "flag": "lagging"},
-        {"city": "Singapore", "system": "SMRT / MRT", "flood": "Moderate", "heat": "High",
-         "flood_score": 5.0, "heat_score": 8.5,
-         "key_fact": "Very hot days (>35 °C) projected 4/yr to 351/yr by 2100. Marina Barrage provides flood control.",
-         "preparedness": "S$125M research programme. $100B long-term coastal protection. MRT fully air-conditioned.",
-         "flag": "proactive"},
-        {"city": "Boston", "system": "MBTA", "flood": "High", "heat": "Moderate",
-         "flood_score": 7.0, "heat_score": 5.0,
-         "key_fact": "Blue Line coastal exposure to Boston Harbor. Airport station flood risk from nor'easters.",
-         "preparedness": "2024 Climate Assessment. $20M Blue Line tunnel flood portal. Aquarium station flood-proofing done.",
-         "flag": "peer"},
-        {"city": "Chicago", "system": "CTA", "flood": "Moderate", "heat": "High",
-         "flood_score": 5.5, "heat_score": 7.5,
-         "key_fact": "50%+ of bus stops and rail stations rated high/very high heat vulnerability.",
-         "preparedness": "CMAP Transportation Resilience Plan (TRIP) launched. Equity-focused investments planned.",
-         "flag": "emerging"},
-        {"city": "Washington DC", "system": "WMATA", "flood": "Moderate", "heat": "High",
-         "flood_score": 5.0, "heat_score": 7.0,
-         "key_fact": "Flash flooding affects entrances. Potomac storm surge risk. Aging HVAC systems.",
-         "preparedness": "$874M Climate Bonds (2021). No published flood/heat roadmap comparable to MTA.",
-         "flag": "lagging"},
-    ]
+    CITIES = {
+        "New York City": {
+            "system": "MTA", "flood": "Extreme", "heat": "High",
+            "flood_score": 9.5, "heat_score": 7.5, "color": RED,
+            "resilience_spend": 7600, "stations": 472, "age": 120,
+            "key_threats": [
+                "Aging 120-year sewer system designed for 44mm/hr; storms now exceed 63mm/hr",
+                "200 of 472 stations flooded in recent years",
+                "Sandy (2012) inundated 150 stations, causing $5B in damage",
+                "75+ flood disruptions from Jan 2020 to Sep 2025",
+                "Underground platforms trap heat; 6 heatwaves in 18 months (2024-25)",
+            ],
+            "preparedness": [
+                "$7.6B post-Sandy federal coastal hardening program",
+                "2024 Climate Resilience Roadmap: $6B over 10 years",
+                "$1.5B committed 2025-29: $700M flood + $800M Metro-North",
+                "Geothermal cooling, platform fans, white rails under exploration",
+            ],
+            "verdict": "Biggest spender, biggest exposure. Leading on planning, lagging on execution speed.",
+        },
+        "Tokyo": {
+            "system": "Metro / Toei", "flood": "Low (managed)", "heat": "Moderate",
+            "flood_score": 3.0, "heat_score": 5.5, "color": GREEN,
+            "resilience_spend": 4200, "stations": 285, "age": 97,
+            "key_threats": [
+                "Typhoon and intense rainfall risk exceeding 75mm/hr increasing",
+                "Record 41.1 °C nationally (2020); heatstroke emergencies surging",
+                "Underground flooding risk to older metro lines during extreme events",
+            ],
+            "preparedness": [
+                "G-Cans underground reservoir: prevents ~$930M flood damage annually",
+                "Triggered ~7 times/year; $4.1B expansion launching 2024",
+                "World's first certified resilience bond ($330M, Oct 2025)",
+                "Full AC across entire metro network",
+            ],
+            "verdict": "Gold standard. Invests proactively, designs for worst case, finances innovatively.",
+        },
+        "London": {
+            "system": "TfL / Underground", "flood": "High", "heat": "Extreme",
+            "flood_score": 7.5, "heat_score": 9.0, "color": TEAL,
+            "resilience_spend": 2800, "stations": 272, "age": 161,
+            "key_threats": [
+                "477 climate risks identified in 2024 ARP4 assessment",
+                "52% of risks are precipitation-related",
+                "Deep tube tunnels exceed 30 °C; London hit 40 °C in 2022",
+                "Heat causes signal failures and track faults in moisture-sensitive clay",
+            ],
+            "preparedness": [
+                "First Climate Adaptation Plan (2023); budget doubled to $2.5M",
+                "AC trains for Piccadilly line from 2025; cooling panels at Holborn",
+                "Thames Estuary 2100 plan: 330km flood assets, 1.4M residents protected",
+                "London Climate Resilience Review: 50 recommendations pledged",
+            ],
+            "verdict": "Heat risk rivals NYC. Systematic planning, but oldest system and underfunded.",
+        },
+        "Paris": {
+            "system": "RATP", "flood": "High", "heat": "High",
+            "flood_score": 7.0, "heat_score": 7.5, "color": ORANGE,
+            "resilience_spend": 800, "stations": 303, "age": 124,
+            "key_threats": [
+                "Seine flooding threatens central Metro lines",
+                "Most tunnels not flood-gated; 1910-level floods could submerge large areas",
+                "Only 10% green space; zinc rooftops trap heat",
+                "Most Metro cars and stations lack AC",
+            ],
+            "preparedness": [
+                "No comprehensive metro-specific climate roadmap",
+                "Relies on citywide Seine flood plans",
+                "Olympic 2024 prompted heat investment: green space, roof gardens",
+                "New AC rolling stock being phased in slowly",
+            ],
+            "verdict": "Cautionary tale. Similar exposure to NYC but no transit-specific climate strategy.",
+        },
+        "Singapore": {
+            "system": "SMRT / MRT", "flood": "Moderate", "heat": "High",
+            "flood_score": 5.0, "heat_score": 8.5, "color": BLUE,
+            "resilience_spend": 12500, "stations": 187, "age": 37,
+            "key_threats": [
+                "Extreme daily rainfall (99th pct) projected to rise 6-92%",
+                "Very hot days (>35 °C) projected 4/yr to 351/yr by 2100",
+                "Warm nights nearly year-round; tropical humidity compounds heat stress",
+            ],
+            "preparedness": [
+                "Marina Barrage (S$226M, 2008) for downtown flood control",
+                "S$125M Coastal Research Programme (2023)",
+                "2026 declared Year of Climate Adaptation; $100B long-term coastal budget",
+                "MRT fully air-conditioned; newest system of all comparators",
+            ],
+            "verdict": "Highest per-station spending. Newest system, most proactive long-term planning.",
+        },
+    }
 
-    # Scatter: flood vs heat risk
-    city_names = [c["city"] for c in CITIES]
-    flood_scores = [c["flood_score"] for c in CITIES]
-    heat_scores = [c["heat_score"] for c in CITIES]
-    flag_colors = {"focus": RED, "leader": GREEN, "peer": TEAL, "proactive": BLUE,
-                   "emerging": YELLOW, "lagging": ORANGE}
-    marker_colors = [flag_colors.get(c["flag"], TEXT_DIM) for c in CITIES]
-    marker_sizes = [18 if c["flag"] == "focus" else 12 for c in CITIES]
+    # --- Scatter plot: flood vs heat ---
+    city_names = list(CITIES.keys())
+    flood_scores = [CITIES[c]["flood_score"] for c in city_names]
+    heat_scores = [CITIES[c]["heat_score"] for c in city_names]
+    city_colors = [CITIES[c]["color"] for c in city_names]
+    city_sizes = [22 if c == "New York City" else 14 for c in city_names]
 
     fig_global = go.Figure()
-    fig_global.add_trace(go.Scatter(
-        x=flood_scores, y=heat_scores,
-        mode="markers+text",
-        marker=dict(color=marker_colors, size=marker_sizes, opacity=0.9,
-                    line=dict(width=1, color=TEXT_DIM)),
-        text=city_names,
-        textposition="top center",
-        textfont=dict(size=11, color=TEXT, family="'Space Grotesk', sans-serif"),
-    ))
-    # Quadrant lines
-    fig_global.add_hline(y=7, line_dash="dot", line_color=MUTED, opacity=0.5)
-    fig_global.add_vline(x=7, line_dash="dot", line_color=MUTED, opacity=0.5)
-    # Quadrant labels
-    fig_global.add_annotation(x=9, y=9.5, text="HIGHEST RISK", showarrow=False,
+    for i, c in enumerate(city_names):
+        fig_global.add_trace(go.Scatter(
+            x=[flood_scores[i]], y=[heat_scores[i]],
+            mode="markers+text",
+            marker=dict(color=city_colors[i], size=city_sizes[i], opacity=0.9,
+                        line=dict(width=2, color=TEXT if c == "New York City" else "rgba(0,0,0,0)")),
+            text=[c], textposition="top center",
+            textfont=dict(size=11, color=TEXT),
+            name=c, showlegend=False,
+            hovertemplate=f"<b>{c}</b><br>Flood: {flood_scores[i]}/10<br>Heat: {heat_scores[i]}/10<extra></extra>",
+        ))
+    # Quadrant shading
+    fig_global.add_shape(type="rect", x0=7, y0=7, x1=10.5, y1=10.5,
+                         fillcolor="rgba(240,112,113,0.06)", line=dict(width=0))
+    fig_global.add_shape(type="rect", x0=0, y0=0, x1=5, y1=5,
+                         fillcolor="rgba(126,179,106,0.06)", line=dict(width=0))
+    fig_global.add_hline(y=7, line_dash="dot", line_color=MUTED, opacity=0.4)
+    fig_global.add_vline(x=7, line_dash="dot", line_color=MUTED, opacity=0.4)
+    fig_global.add_annotation(x=9, y=10, text="HIGHEST RISK", showarrow=False,
                               font=dict(size=9, color=RED, family="'JetBrains Mono', monospace"))
-    fig_global.add_annotation(x=2, y=4, text="BEST MANAGED", showarrow=False,
+    fig_global.add_annotation(x=2.5, y=3.5, text="BEST MANAGED", showarrow=False,
                               font=dict(size=9, color=GREEN, family="'JetBrains Mono', monospace"))
-    styled_fig(fig_global, height=450, showlegend=False,
+    styled_fig(fig_global, height=480, showlegend=False,
                title=dict(text="Global Transit Climate Risk: Flood vs Heat Exposure",
                           font=dict(size=14, color=TEXT_DIM)),
-               xaxis=dict(title="Flood Risk Score", range=[0, 10.5], gridcolor=MUTED,
-                          dtick=2),
-               yaxis=dict(title="Heat Risk Score", range=[0, 10.5], gridcolor=MUTED,
-                          dtick=2))
+               xaxis=dict(title="Flood Risk Score", range=[0, 10.5], gridcolor=MUTED, dtick=2),
+               yaxis=dict(title="Heat Risk Score", range=[0, 10.5], gridcolor=MUTED, dtick=2))
     st.plotly_chart(fig_global, use_container_width=True)
 
-    # Comparison table
-    rows_html = ""
-    for c in CITIES:
-        flag_color = flag_colors.get(c["flag"], TEXT_DIM)
-        star = " &#9733;" if c["flag"] == "focus" else ""
-        rows_html += f"""<tr>
-            <td><strong style="color:{flag_color}">{c['city']}{star}</strong><br>
-                <span style="color:{TEXT_DIM};font-size:11px">{c['system']}</span></td>
-            <td style="text-align:center"><span style="color:{BLUE if c['flood_score']>=7 else TEAL if c['flood_score']>=5 else GREEN};font-weight:600">{c['flood']}</span></td>
-            <td style="text-align:center"><span style="color:{RED if c['heat_score']>=7 else ORANGE if c['heat_score']>=5 else GREEN};font-weight:600">{c['heat']}</span></td>
-            <td style="font-size:12px;color:{TEXT_DIM}">{c['key_fact']}</td>
-            <td style="font-size:12px;color:{TEXT_DIM}">{c['preparedness']}</td>
-        </tr>"""
+    # --- Interactive city selector ---
+    city_choice = st.radio(
+        "Select city to compare with NYC",
+        [c for c in city_names if c != "New York City"],
+        horizontal=True, index=0,
+    )
+    nyc = CITIES["New York City"]
+    comp = CITIES[city_choice]
 
-    st.markdown(f"""
-    <table class="risk-table" style="font-size:12px;">
-      <thead><tr>
-        <th style="width:14%">City / System</th>
-        <th style="width:8%;text-align:center">Flood</th>
-        <th style="width:8%;text-align:center">Heat</th>
-        <th style="width:35%">Key Threats</th>
-        <th style="width:35%">Preparedness</th>
-      </tr></thead>
-      <tbody>{rows_html}</tbody>
-    </table>
-    """, unsafe_allow_html=True)
+    # Side-by-side radar chart
+    categories = ["Flood Risk", "Heat Risk", "System Age", "Stations", "Resilience\nSpend ($M)"]
+    # Normalize to 0-10
+    max_age = max(c["age"] for c in CITIES.values())
+    max_stations = max(c["stations"] for c in CITIES.values())
+    max_spend = max(c["resilience_spend"] for c in CITIES.values())
 
-    # Key takeaway
-    st.markdown(f"""
-    <div style="margin:2rem 0; padding:1.5rem 2rem; background:{BG_CARD}; border-radius:8px;
-                border-left:4px solid {GREEN};" class="fade-up">
-      <p style="color:{GREEN};font-weight:600;font-size:15px;margin-bottom:10px;">What the MTA can learn</p>
-      <p style="color:{TEXT_DIM};font-size:14px;line-height:1.7;margin-bottom:10px;">
-        <strong style="color:{TEXT}">Tokyo</strong> is the gold standard. Its G-Cans underground
-        reservoir system prevents nearly $1B in flood damage annually and in October 2025 issued the
-        world's first certified resilience bond ($330M) for coastal defenses.
-      </p>
-      <p style="color:{TEXT_DIM};font-size:14px;line-height:1.7;margin-bottom:10px;">
-        <strong style="color:{TEXT}">London's</strong> heat challenge rivals NYC's, with deep-tube
-        tunnels still lacking AC and a 2024 risk assessment finding 477 climate hazards for TfL.
-        But their Climate Adaptation Plan and the TE2100 seawall programme show what systematic
-        planning looks like.
-      </p>
-      <p style="color:{TEXT_DIM};font-size:14px;line-height:1.7;margin:0;">
-        <strong style="color:{TEXT}">Paris</strong> is the cautionary tale. Similar flood exposure
-        to NYC but no metro-specific climate roadmap, relying entirely on citywide Seine flood plans.
-        An MTA VP noted that Paris, Tokyo, and London are all experiencing flood events comparable to New York.
-      </p>
-    </div>
-    """, unsafe_allow_html=True)
+    nyc_vals = [nyc["flood_score"], nyc["heat_score"],
+                nyc["age"]/max_age*10, nyc["stations"]/max_stations*10,
+                nyc["resilience_spend"]/max_spend*10]
+    comp_vals = [comp["flood_score"], comp["heat_score"],
+                 comp["age"]/max_age*10, comp["stations"]/max_stations*10,
+                 comp["resilience_spend"]/max_spend*10]
+
+    fig_radar = go.Figure()
+    fig_radar.add_trace(go.Scatterpolar(
+        r=nyc_vals + [nyc_vals[0]], theta=categories + [categories[0]],
+        fill="toself", fillcolor="rgba(240,112,113,0.15)",
+        line=dict(color=RED, width=2), name="New York City",
+    ))
+    fig_radar.add_trace(go.Scatterpolar(
+        r=comp_vals + [comp_vals[0]], theta=categories + [categories[0]],
+        fill="toself", fillcolor=f"rgba({int(comp['color'][1:3],16)},{int(comp['color'][3:5],16)},{int(comp['color'][5:7],16)},0.15)",
+        line=dict(color=comp["color"], width=2), name=city_choice,
+    ))
+    fig_radar.update_layout(
+        polar=dict(
+            bgcolor="rgba(0,0,0,0)",
+            radialaxis=dict(visible=True, range=[0, 10], gridcolor=MUTED,
+                            tickfont=dict(size=9, color=TEXT_DIM)),
+            angularaxis=dict(gridcolor=MUTED, tickfont=dict(size=11, color=TEXT)),
+        ),
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(family="'Space Grotesk', sans-serif", color=TEXT),
+        height=420, showlegend=True,
+        legend=dict(orientation="h", y=-0.1, font=dict(size=12),
+                    bgcolor="rgba(0,0,0,0)"),
+        margin=dict(l=60, r=60, t=40, b=60),
+    )
+    st.plotly_chart(fig_radar, use_container_width=True)
+
+    # Side-by-side detail cards
+    col_nyc, col_comp = st.columns(2)
+    with col_nyc:
+        st.markdown(f"""
+        <div style="padding:1.5rem; background:{BG_CARD}; border-radius:8px;
+                    border-top:3px solid {RED};">
+          <p style="color:{RED};font-weight:600;font-size:16px;margin-bottom:4px;">New York City</p>
+          <p style="color:{TEXT_DIM};font-size:12px;margin-bottom:12px;">
+            {nyc['system']} &nbsp;|&nbsp; {nyc['stations']} stations &nbsp;|&nbsp; {nyc['age']} years old
+            &nbsp;|&nbsp; ${nyc['resilience_spend']/1e3:.1f}B resilience spend</p>
+          <p style="color:{TEXT};font-weight:500;font-size:13px;margin-bottom:6px;">Key Threats</p>
+          <ul style="font-size:12px;color:{TEXT_DIM};line-height:1.7;margin-bottom:12px;">
+            {"".join(f"<li>{t}</li>" for t in nyc['key_threats'])}
+          </ul>
+          <p style="color:{TEXT};font-weight:500;font-size:13px;margin-bottom:6px;">Preparedness</p>
+          <ul style="font-size:12px;color:{TEXT_DIM};line-height:1.7;margin-bottom:12px;">
+            {"".join(f"<li>{p}</li>" for p in nyc['preparedness'])}
+          </ul>
+          <p style="font-size:12px;color:{RED};font-style:italic;margin:0;">{nyc['verdict']}</p>
+        </div>
+        """, unsafe_allow_html=True)
+    with col_comp:
+        st.markdown(f"""
+        <div style="padding:1.5rem; background:{BG_CARD}; border-radius:8px;
+                    border-top:3px solid {comp['color']};">
+          <p style="color:{comp['color']};font-weight:600;font-size:16px;margin-bottom:4px;">{city_choice}</p>
+          <p style="color:{TEXT_DIM};font-size:12px;margin-bottom:12px;">
+            {comp['system']} &nbsp;|&nbsp; {comp['stations']} stations &nbsp;|&nbsp; {comp['age']} years old
+            &nbsp;|&nbsp; ${comp['resilience_spend']/1e3:.1f}B resilience spend</p>
+          <p style="color:{TEXT};font-weight:500;font-size:13px;margin-bottom:6px;">Key Threats</p>
+          <ul style="font-size:12px;color:{TEXT_DIM};line-height:1.7;margin-bottom:12px;">
+            {"".join(f"<li>{t}</li>" for t in comp['key_threats'])}
+          </ul>
+          <p style="color:{TEXT};font-weight:500;font-size:13px;margin-bottom:6px;">Preparedness</p>
+          <ul style="font-size:12px;color:{TEXT_DIM};line-height:1.7;margin-bottom:12px;">
+            {"".join(f"<li>{p}</li>" for p in comp['preparedness'])}
+          </ul>
+          <p style="font-size:12px;color:{comp['color']};font-style:italic;margin:0;">{comp['verdict']}</p>
+        </div>
+        """, unsafe_allow_html=True)
 
     divider()
 
