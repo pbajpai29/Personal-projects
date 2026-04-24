@@ -615,7 +615,7 @@ def main():
     # Phase data for the interactive timeline
     PHASES = {
         "React (Now–2030)": {
-            "icon": "🚨", "color": RED,
+            "color": RED,
             "headline": "Climate migration begins",
             "body": (
                 "100-year floods hitting every 5–10 years force full or partial retreat "
@@ -626,10 +626,10 @@ def main():
             "metric_label": "Flood disruptions/yr", "metric_val": "75+",
         },
         "Adapt (2030–2040)": {
-            "icon": "🔄", "color": ORANGE,
+            "color": ORANGE,
             "headline": "Hybrid mobility takes hold",
             "body": (
-                "Heat risk hits vulnerable populations hardest—long walks and waits become "
+                "Heat risk hits vulnerable populations hardest — long walks and waits become "
                 "dangerous. Transit users shift to hybrid mobility: more buses, ferries, and "
                 "elevated lines. The MTA begins diversifying beyond subways."
             ),
@@ -637,7 +637,7 @@ def main():
             "metric_label": "Extreme heat days/yr", "metric_val": "40+",
         },
         "Transform (2040–2050)": {
-            "icon": "🏗️", "color": TEAL,
+            "color": TEAL,
             "headline": "Infrastructure reimagined",
             "body": (
                 "Resilience bonds tied to congestion pricing fund massive rebuilds. Underground "
@@ -648,11 +648,11 @@ def main():
             "metric_label": "Lines converted to elevated", "metric_val": "6",
         },
         "Thrive (2050–2060)": {
-            "icon": "🌿", "color": GREEN,
+            "color": GREEN,
             "headline": "Climate-positive transit",
             "body": (
                 "Solar-powered cooling protects underserved neighborhoods. Nature-based solutions "
-                "are standard. The network is diversified, resilient, and equitable—designed for "
+                "are standard. The network is diversified, resilient, and equitable — designed for "
                 "the climate that actually exists."
             ),
             "transit_mix": {"Subway": 28, "Bus": 18, "Ferry": 15, "Elevated": 20, "Micro-transit": 10, "Walking/Cycling": 9},
@@ -665,13 +665,36 @@ def main():
                               key="visioning_phase")
     phase = PHASES[selected_phase]
 
-    # --- Animated transit mode evolution chart ---
+    # --- Phase detail + metric side-by-side ---
+    st.markdown(f"""
+    <div style="display:flex; gap:1.5rem; margin:1rem 0 1.5rem 0;" class="fade-up">
+      <div style="flex:1; padding:1.6rem 2rem; background:{BG_CARD}; border-radius:8px;
+                  border-left:4px solid {phase['color']};">
+        <p style="color:{phase['color']};font-weight:700;font-size:18px;margin:0 0 4px 0;
+                  letter-spacing:-0.01em;">{phase['headline']}</p>
+        <p style="color:{TEXT_DIM};font-size:11px;margin:0 0 12px 0;font-family:'JetBrains Mono',monospace;
+           letter-spacing:0.06em;text-transform:uppercase;">{selected_phase}</p>
+        <p style="color:{TEXT_DIM};font-size:14px;line-height:1.75;margin:0;">
+          {phase['body']}</p>
+      </div>
+      <div style="width:180px; padding:1.6rem 1.2rem; background:{BG_CARD}; border-radius:8px;
+                  display:flex; flex-direction:column; align-items:center; justify-content:center;
+                  text-align:center;">
+        <div style="font-size:38px; font-weight:700; color:{phase['color']};
+                    letter-spacing:-0.03em; line-height:1;">{phase['metric_val']}</div>
+        <div style="font-size:10px; color:{TEXT_DIM}; margin-top:8px;
+                    font-family:'JetBrains Mono',monospace; letter-spacing:0.04em;
+                    text-transform:uppercase;">{phase['metric_label']}</div>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # --- Transit mode evolution chart ---
     mode_colors = {
         "Subway": BLUE, "Bus": ORANGE, "Ferry": TEAL,
         "Elevated": PURPLE, "Micro-transit": PINK, "Walking/Cycling": GREEN,
     }
 
-    # Show all phases as stacked bars, highlight the selected one
     fig_vision = go.Figure()
     modes = list(mode_colors.keys())
     for mode in modes:
@@ -679,79 +702,45 @@ def main():
         fig_vision.add_trace(go.Bar(
             x=phase_names, y=vals, name=mode,
             marker=dict(color=mode_colors[mode],
-                        opacity=[1.0 if p == selected_phase else 0.35 for p in phase_names]),
+                        opacity=[1.0 if p == selected_phase else 0.3 for p in phase_names]),
             hovertemplate=f"<b>{mode}</b><br>%{{x}}: %{{y}}%<extra></extra>",
             text=[f"{v}%" if p == selected_phase else "" for v, p in zip(vals, phase_names)],
             textposition="inside", textfont=dict(size=10, color=TEXT),
         ))
-    styled_fig(fig_vision, height=380, barmode="stack",
-               title=dict(text="Transit Mode Evolution: How NYC Gets Around",
+    styled_fig(fig_vision, height=360, barmode="stack",
+               title=dict(text="Transit Mode Share Evolution",
                           font=dict(size=14, color=TEXT_DIM)),
                xaxis=dict(gridcolor="rgba(0,0,0,0)", tickfont=dict(size=11, color=TEXT)),
                yaxis=dict(title="Mode Share (%)", gridcolor=MUTED, range=[0, 105]),
                legend=dict(orientation="h", y=-0.18, font=dict(size=10),
                            bgcolor="rgba(0,0,0,0)"),
-               margin=dict(l=48, r=24, t=56, b=70))
+               margin=dict(l=48, r=24, t=48, b=70))
     st.plotly_chart(fig_vision, use_container_width=True)
 
-    # --- Phase detail card ---
-    st.markdown(f"""
-    <div style="display:flex; gap:1.5rem; margin:0.5rem 0 1.5rem 0;" class="fade-up">
-      <div style="flex:1; padding:1.8rem 2rem; background:{BG_CARD}; border-radius:8px;
-                  border-left:4px solid {phase['color']};">
-        <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
-          <span style="font-size:32px;">{phase['icon']}</span>
-          <div>
-            <p style="color:{phase['color']};font-weight:700;font-size:18px;margin:0;letter-spacing:-0.01em;">
-              {phase['headline']}</p>
-            <p style="color:{TEXT_DIM};font-size:11px;margin:0;font-family:'JetBrains Mono',monospace;
-               letter-spacing:0.06em;text-transform:uppercase;">{selected_phase}</p>
-          </div>
-        </div>
-        <p style="color:{TEXT_DIM};font-size:14px;line-height:1.75;margin:0;">
-          {phase['body']}</p>
-      </div>
-      <div style="width:200px; padding:1.8rem 1.5rem; background:{BG_CARD}; border-radius:8px;
-                  display:flex; flex-direction:column; align-items:center; justify-content:center;
-                  text-align:center;">
-        <div style="font-size:42px; font-weight:700; color:{phase['color']};
-                    letter-spacing:-0.03em; line-height:1;">{phase['metric_val']}</div>
-        <div style="font-size:11px; color:{TEXT_DIM}; margin-top:8px;
-                    font-family:'JetBrains Mono',monospace; letter-spacing:0.04em;
-                    text-transform:uppercase;">{phase['metric_label']}</div>
-      </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # --- Solution opportunities (visual cards row) ---
+    # --- Solution opportunities ---
     solutions = [
-        ("Resilience Bonds", "$330M", "Tied to congestion pricing revenue; Tokyo pioneered this in 2025",
-         BLUE, "💰"),
-        ("Elevated Lines", "6 routes", "Convert flood-prone underground segments to elevated rail",
-         PURPLE, "🚈"),
-        ("Green Infrastructure", "40% runoff ↓", "Bioswales, permeable surfaces, and green roofs absorb stormwater",
-         GREEN, "🌱"),
-        ("Solar Cooling", "472 stations", "Solar-powered platform cooling protects underserved neighborhoods",
-         ORANGE, "☀️"),
+        ("Resilience Bonds", "$330M", "Tied to congestion pricing revenue", BLUE),
+        ("Elevated Lines", "6 routes", "Convert flood-prone underground segments", PURPLE),
+        ("Green Infrastructure", "40% runoff reduction", "Bioswales, permeable surfaces, green roofs", GREEN),
+        ("Solar Cooling", "472 stations", "Platform cooling for underserved areas", ORANGE),
     ]
 
     st.markdown(f"""
     <p style="color:{TEXT_DIM};font-size:11px;font-family:'JetBrains Mono',monospace;
-       letter-spacing:0.12em;text-transform:uppercase;margin:1.5rem 0 1rem 0;">
+       letter-spacing:0.12em;text-transform:uppercase;margin:1rem 0 0.8rem 0;">
        Opportunity portfolio</p>
     """, unsafe_allow_html=True)
 
     cols = st.columns(4)
-    for col, (title, val, desc, color, icon) in zip(cols, solutions):
+    for col, (title, val, desc, color) in zip(cols, solutions):
         with col:
             st.markdown(f"""
             <div style="padding:1.2rem; background:{BG_CARD}; border-radius:8px; height:100%;
                         border-top:3px solid {color};" class="fade-up">
-              <div style="font-size:24px; margin-bottom:8px;">{icon}</div>
-              <p style="color:{color};font-weight:600;font-size:14px;margin:0 0 2px 0;">{title}</p>
-              <p style="color:{TEXT};font-size:22px;font-weight:700;margin:4px 0 8px 0;
+              <p style="color:{color};font-weight:600;font-size:13px;margin:0 0 4px 0;">{title}</p>
+              <p style="color:{TEXT};font-size:20px;font-weight:700;margin:2px 0 8px 0;
                         letter-spacing:-0.02em;">{val}</p>
-              <p style="color:{TEXT_DIM};font-size:12px;line-height:1.6;margin:0;">{desc}</p>
+              <p style="color:{TEXT_DIM};font-size:12px;line-height:1.5;margin:0;">{desc}</p>
             </div>
             """, unsafe_allow_html=True)
 
@@ -1057,6 +1046,42 @@ def main():
                 "MRT fully air-conditioned; newest system of all comparators",
             ],
             "verdict": "Highest per-station spending. Newest system, most proactive long-term planning.",
+        },
+        "Boston": {
+            "system": "MBTA", "flood": "High", "heat": "Moderate",
+            "flood_score": 7.0, "heat_score": 6.0, "color": YELLOW,
+            "resilience_spend": 1200, "stations": 155, "age": 127,
+            "key_threats": [
+                "Oldest subway in the US (1897); infrastructure at end of life",
+                "Coastal storm surge threatens Blue Line and waterfront stations",
+                "2022 flooding shut down entire Orange Line for 30 days",
+                "Sea level rise of 1.5 ft by 2050 puts downtown tunnels at risk",
+            ],
+            "preparedness": [
+                "$2.3B Resilience Program announced 2024",
+                "Flood barriers at Aquarium and Airport stations",
+                "Climate Change Vulnerability Assessment completed 2023",
+                "Emergency slow zones and speed restrictions during heat events",
+            ],
+            "verdict": "Oldest US system, chronically underfunded. High awareness but slow execution.",
+        },
+        "Washington DC": {
+            "system": "WMATA / Metro", "flood": "Moderate", "heat": "High",
+            "flood_score": 5.5, "heat_score": 7.0, "color": PINK,
+            "resilience_spend": 2100, "stations": 98, "age": 49,
+            "key_threats": [
+                "Potomac River flooding threatens low-lying stations",
+                "Intense summer heat (35+ °C days increasing 40% since 2000)",
+                "Aging electrical systems vulnerable to storm-related outages",
+                "Flash floods overwhelmed drainage at 12 stations in 2023-24",
+            ],
+            "preparedness": [
+                "$1.6B SafeTrack infrastructure renewal program",
+                "Flood sensor network installed at 40 vulnerable stations",
+                "Heat mitigation plan with cooling centers at major hubs",
+                "Federal funding advantage as the nation's capital system",
+            ],
+            "verdict": "Younger system but politically complex. Federal funding is a double-edged sword.",
         },
     }
 
