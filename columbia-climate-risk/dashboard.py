@@ -500,241 +500,69 @@ def main():
             "network, and emergency policy mandates shutting down MTA services for days. "
             "We modeled four of these scenarios to estimate what the MTA is really facing.")
 
-    # Scenario definitions
+    # Scenario data: name -> (direct_cost, color, annual_prob_by_decade)
+    # prob_by_decade = [2025, 2030, 2040, 2050, 2060]
     SCENARIOS = {
-        "100-Year Flood (Recurring)": {
-            "desc": "A Sandy-scale flood event recurring every 5-10 years instead of every 100. "
-                    "150+ stations inundated, tunnels flooded, 3-5 day full shutdown.",
-            "direct_cost": 5_000_000_000,
-            "annual_prob": 0.15,
-            "lines_affected": 22,
-            "recovery_days": 14,
-            "color": BLUE,
-            "icon": "\U0001F30A",
-            "stations_shut": 150,
-            "riders_stranded": 4_125_000,
-            "timeline": {
-                "Day 0": "Storm hits. 150 stations flood within hours. All tunnels south of 60th St submerged.",
-                "Day 1-3": "Full system shutdown. Emergency bus bridges overwhelmed. 5.5M riders stranded.",
-                "Day 4-7": "Pumping operations begin. Saltwater corrosion damages signal equipment.",
-                "Day 8-14": "Partial service restoration. 40% of stations still closed.",
-                "Day 15-60": "Rolling repairs. Equipment replacement. $5B+ in damage confirmed.",
-            },
-            "annual_growth": [0.15, 0.18, 0.22, 0.26, 0.30],  # prob growing 2025-2060
-        },
-        "Cascading Power Failure": {
-            "desc": "Extreme heat wave triggers grid overload. Traction power fails across "
-                    "multiple boroughs simultaneously. Signal systems go dark. No trains move.",
-            "direct_cost": 800_000_000,
-            "annual_prob": 0.08,
-            "lines_affected": 27,
-            "recovery_days": 5,
-            "color": RED,
-            "icon": "\u26A1",
-            "stations_shut": 472,
-            "riders_stranded": 5_500_000,
-            "timeline": {
-                "Hour 0": "Heat index hits 46 °C. Con Edison sheds load. Traction power drops across Queens, Brooklyn.",
-                "Hour 2-6": "Cascading failure. Signal systems go dark on 27 lines. Total network blackout.",
-                "Day 1-2": "Emergency generators fail at 3 substations. No timeline for grid restoration.",
-                "Day 3-4": "Partial power restored. But signal equipment fried by surge. Manual operations only.",
-                "Day 5-14": "Incremental line-by-line restoration. Equipment procurement delays.",
-            },
-            "annual_growth": [0.08, 0.11, 0.15, 0.20, 0.25],
-        },
-        "Multi-Day Heat Emergency": {
-            "desc": "Week-long heat dome with temperatures exceeding 43 °C. Emergency mandate "
-                    "shuts underground service to protect riders. Track buckling across the network.",
-            "direct_cost": 1_200_000_000,
-            "annual_prob": 0.10,
-            "lines_affected": 18,
-            "recovery_days": 10,
-            "color": ORANGE,
-            "icon": "\U0001F321\uFE0F",
-            "stations_shut": 280,
-            "riders_stranded": 3_800_000,
-            "timeline": {
-                "Day 1-2": "Underground platform temps hit 52 °C. Three rider heat emergencies. MTA issues heat advisory.",
-                "Day 3": "Mayor mandates closure of deep-tube stations. 280 stations shut. Track inspections ordered.",
-                "Day 4-5": "Sun kinks found on 14 line segments. Speed restrictions across entire network.",
-                "Day 6-7": "Heat dome persists. Track buckling on elevated lines. Steel expansion beyond design limits.",
-                "Day 8-14": "Temps finally drop. Track geometry repairs. $1.2B in accelerated infrastructure damage.",
-            },
-            "annual_growth": [0.10, 0.14, 0.19, 0.25, 0.32],
-        },
-        "Flash Flood + Storm Surge": {
-            "desc": "Atmospheric river dumps 150mm in 6 hours while coastal storm surge pushes "
-                    "seawater into tunnel ventilation shafts. Sewer system designed for 44mm/hr "
-                    "fails completely.",
-            "direct_cost": 3_500_000_000,
-            "annual_prob": 0.12,
-            "lines_affected": 15,
-            "recovery_days": 21,
-            "color": TEAL,
-            "icon": "\U0001F32A\uFE0F",
-            "stations_shut": 200,
-            "riders_stranded": 3_200_000,
-            "timeline": {
-                "Hour 0-3": "150mm rainfall in 6 hours. Sewers overwhelmed at 44mm/hr capacity. Streets become rivers.",
-                "Hour 3-6": "Storm surge pushes seawater into tunnel vents. A/C, L, G tunnels flood to ceiling.",
-                "Day 1-3": "Saltwater in electrical systems. Corrosion begins immediately. 200 stations submerged.",
-                "Day 4-14": "Pumping, decontamination, electrical rebuilds. Coastal stations may never fully recover.",
-                "Day 15-60": "Long-tail restoration. Some tunnel sections require complete re-signaling. $3.5B damage.",
-            },
-            "annual_growth": [0.12, 0.15, 0.19, 0.24, 0.30],
-        },
+        "100-Year Flood":       (5.0e9,  BLUE,   [0.15, 0.18, 0.22, 0.26, 0.30]),
+        "Cascading Power Fail": (0.8e9,  RED,    [0.08, 0.11, 0.15, 0.20, 0.25]),
+        "Heat Emergency":       (1.2e9,  ORANGE, [0.10, 0.14, 0.19, 0.25, 0.32]),
+        "Flash Flood + Surge":  (3.5e9,  TEAL,   [0.12, 0.15, 0.19, 0.24, 0.30]),
     }
+    proj_years = [2025, 2030, 2040, 2050, 2060]
 
-    scenario_choice = st.radio(
-        "Select scenario",
-        list(SCENARIOS.keys()),
-        horizontal=True, index=0,
-    )
-    sc = SCENARIOS[scenario_choice]
-
-    # --- Dramatic scenario header ---
-    st.markdown(f"""
-    <div style="padding:2rem 2.5rem; background: linear-gradient(135deg, {BG_CARD} 0%, {BG_HINT} 100%);
-                border-radius:12px; border-left:5px solid {sc['color']};
-                margin:1rem 0 0.5rem 0; position:relative; overflow:hidden;" class="fade-up">
-      <div style="position:absolute; top:10px; right:20px; font-size:48px; opacity:0.15;">{sc['icon']}</div>
-      <p style="color:{sc['color']};font-family:'JetBrains Mono',monospace;font-size:11px;
-                letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px;">
-        SCENARIO: {scenario_choice.upper()}</p>
-      <p style="color:{TEXT};font-size:17px;line-height:1.6;margin:0;max-width:85%;">{sc['desc']}</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # --- Big impact numbers ---
-    kpi_strip([
-        ("Direct cost", f"${sc['direct_cost']/1e9:.1f}B", "infrastructure + lost revenue"),
-        ("Stations shut", f"{sc['stations_shut']}", f"of 472 total"),
-        ("Riders stranded", f"{sc['riders_stranded']/1e6:.1f}M", "per day of shutdown"),
-        ("Recovery time", f"{sc['recovery_days']}+ days", "to full service"),
-    ])
-
-    # --- Cascading timeline visualization ---
-    st.markdown(f"""
-    <div class="section-label" style="padding-top:1rem">CASCADING FAILURE TIMELINE</div>
-    """, unsafe_allow_html=True)
-
-    timeline_items = list(sc["timeline"].items())
-    for i, (time_label, event_desc) in enumerate(timeline_items):
-        opacity = 1.0 - (i * 0.12)
-        bar_width = 100 - (i * 8)
-        st.markdown(f"""
-        <div style="display:flex; gap:1rem; margin-bottom:2px; align-items:stretch;" class="fade-up fade-up-d{min(i,4)}">
-          <div style="min-width:80px; text-align:right; padding:12px 0;">
-            <span style="font-family:'JetBrains Mono',monospace; font-size:12px;
-                         color:{sc['color']}; font-weight:600;">{time_label}</span>
-          </div>
-          <div style="width:3px; background:{sc['color']}; opacity:{opacity}; border-radius:2px;"></div>
-          <div style="flex:1; padding:10px 16px; background:{BG_CARD}; border-radius:6px;
-                      border-left:2px solid {sc['color']}; opacity:{opacity};
-                      max-width:{bar_width}%;">
-            <p style="color:{TEXT_DIM}; font-size:13px; line-height:1.5; margin:0;">{event_desc}</p>
-          </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    # --- Expected annual loss comparison (all scenarios) ---
-    st.markdown(f"""
-    <div class="section-label" style="padding-top:2rem">EXPECTED ANNUAL LOSS</div>
-    """, unsafe_allow_html=True)
-
-    sc_names = list(SCENARIOS.keys())
-    sc_eal = [SCENARIOS[s]["direct_cost"] * SCENARIOS[s]["annual_prob"] for s in sc_names]
-    sc_colors_list = [SCENARIOS[s]["color"] for s in sc_names]
-    sc_short = ["100-Yr Flood", "Power Failure", "Heat Emergency", "Flash Flood"]
-    # Highlight selected
-    sc_opacities = [1.0 if s == scenario_choice else 0.35 for s in sc_names]
-
-    fig_eal = go.Figure(go.Bar(
-        x=sc_short, y=sc_eal,
-        marker=dict(color=sc_colors_list, opacity=sc_opacities),
-        text=[f"${v/1e6:.0f}M/yr" for v in sc_eal],
-        textposition="outside",
-        textfont=dict(color=TEXT, size=13, family="'JetBrains Mono', monospace"),
-    ))
-    styled_fig(fig_eal, height=340, showlegend=False,
-               title=dict(text="Expected Annual Loss = Direct Cost x Annual Probability",
-                          font=dict(size=14, color=TEXT_DIM)),
-               yaxis=dict(title="Expected Annual Loss (USD)", gridcolor=MUTED))
-    st.plotly_chart(fig_eal, use_container_width=True)
-
-    # --- Probability growth over time (per selected scenario) ---
-    prob_years = [2025, 2030, 2040, 2050, 2060]
-    prob_vals = sc["annual_growth"]
-    eal_future = [sc["direct_cost"] * p for p in prob_vals]
-
-    col_a, col_b = st.columns(2)
-    with col_a:
-        fig_prob = go.Figure()
-        fig_prob.add_trace(go.Scatter(
-            x=prob_years, y=[p*100 for p in prob_vals],
-            mode="lines+markers+text",
-            line=dict(color=sc["color"], width=3),
-            marker=dict(size=10, color=sc["color"],
-                        line=dict(width=2, color=TEXT)),
-            text=[f"{p:.0%}" for p in prob_vals],
-            textposition="top center",
-            textfont=dict(size=12, color=TEXT, family="'JetBrains Mono', monospace"),
+    # --- One dramatic line chart: expected annual loss over time, all scenarios ---
+    fig_wc = go.Figure()
+    for name, (cost, color, probs) in SCENARIOS.items():
+        eal_line = [cost * p / 1e6 for p in probs]  # in $M
+        fig_wc.add_trace(go.Scatter(
+            x=proj_years, y=eal_line,
+            mode="lines+markers",
+            name=name,
+            line=dict(color=color, width=3),
+            marker=dict(size=8, color=color, line=dict(width=1, color=TEXT)),
+            hovertemplate=f"<b>{name}</b><br>%{{x}}: $%{{y:.0f}}M/yr<extra></extra>",
         ))
-        # Fill area
-        fig_prob.add_trace(go.Scatter(
-            x=prob_years, y=[p*100 for p in prob_vals],
-            fill="tozeroy", fillcolor=f"rgba{tuple(list(int(sc['color'].lstrip('#')[i:i+2], 16) for i in (0, 2, 4)) + [0.1])}",
+        # fill under each line
+        fig_wc.add_trace(go.Scatter(
+            x=proj_years, y=eal_line,
+            fill="tozeroy",
+            fillcolor=color.replace("#", "rgba(") if False else
+                f"rgba({int(color[1:3],16)},{int(color[3:5],16)},{int(color[5:7],16)},0.06)",
             line=dict(width=0), showlegend=False, hoverinfo="skip",
         ))
-        styled_fig(fig_prob, height=320, showlegend=False,
-                   title=dict(text="Annual Probability Over Time",
-                              font=dict(size=13, color=TEXT_DIM)),
-                   xaxis=dict(title="", gridcolor=MUTED, dtick=10),
-                   yaxis=dict(title="Probability (%)", gridcolor=MUTED,
-                              range=[0, max(prob_vals)*120]))
-        st.plotly_chart(fig_prob, use_container_width=True)
 
-    with col_b:
-        fig_eal_t = go.Figure()
-        fig_eal_t.add_trace(go.Bar(
-            x=prob_years, y=eal_future,
-            marker=dict(
-                color=eal_future,
-                colorscale=[[0, BG_HINT], [0.5, sc["color"]], [1, RED]],
-                showscale=False,
-            ),
-            text=[f"${v/1e6:.0f}M" for v in eal_future],
-            textposition="outside",
-            textfont=dict(size=11, color=TEXT, family="'JetBrains Mono', monospace"),
-        ))
-        styled_fig(fig_eal_t, height=320, showlegend=False,
-                   title=dict(text="Expected Annual Loss Over Time",
-                              font=dict(size=13, color=TEXT_DIM)),
-                   xaxis=dict(title="", gridcolor=MUTED),
-                   yaxis=dict(title="Expected Annual Loss (USD)", gridcolor=MUTED))
-        st.plotly_chart(fig_eal_t, use_container_width=True)
+    # Add a "current normal" reference line
+    fig_wc.add_hline(y=avg_annual_loss/1e6, line_dash="dot", line_color=TEXT_DIM, opacity=0.5,
+                     annotation=dict(text=f"Current annual weather losses (${avg_annual_loss/1e6:.1f}M)",
+                                     font=dict(size=10, color=TEXT_DIM),
+                                     xanchor="left", x=0.02))
 
-    # --- Combined total ---
-    total_eal = sum(sc_eal)
-    eal_selected = sc["direct_cost"] * sc["annual_prob"]
-    eal_2060 = sc["direct_cost"] * sc["annual_growth"][-1]
+    styled_fig(fig_wc, height=420,
+               title=dict(text="Wildcard Scenarios: Expected Annual Loss Projection",
+                          font=dict(size=16, color=TEXT)),
+               xaxis=dict(title="", gridcolor=MUTED, dtick=10),
+               yaxis=dict(title="Expected Annual Loss ($M)", gridcolor=MUTED),
+               legend=dict(orientation="h", y=-0.15, font=dict(size=12),
+                           bgcolor="rgba(0,0,0,0)"))
+    st.plotly_chart(fig_wc, use_container_width=True)
+
+    # --- Callout numbers ---
+    total_eal_2025 = sum(cost * probs[0] for _, (cost, _, probs) in SCENARIOS.items())
+    total_eal_2060 = sum(cost * probs[-1] for _, (cost, _, probs) in SCENARIOS.items())
 
     st.markdown(f"""
-    <div style="display:flex; gap:2rem; margin:1.5rem 0; flex-wrap:wrap;" class="fade-up">
-      <div style="flex:1; min-width:200px; padding:1.5rem; background:{BG_CARD}; border-radius:8px;
-                  border-top:3px solid {sc['color']}; text-align:center;">
-        <div class="stat-callout" style="font-size:48px; color:{sc['color']};">${eal_selected/1e6:.0f}M</div>
-        <div class="stat-context">expected annual loss today<br>for this scenario alone</div>
+    <div style="display:flex; gap:3rem; margin:1.5rem 0;" class="fade-up">
+      <div>
+        <div class="stat-callout c-red">${total_eal_2060/1e9:.1f}B</div>
+        <div class="stat-context">combined expected annual loss<br>across all wildcards by 2060</div>
       </div>
-      <div style="flex:1; min-width:200px; padding:1.5rem; background:{BG_CARD}; border-radius:8px;
-                  border-top:3px solid {RED}; text-align:center;">
-        <div class="stat-callout" style="font-size:48px; color:{RED};">${eal_2060/1e6:.0f}M</div>
-        <div class="stat-context">expected annual loss by 2060<br>as probability increases</div>
+      <div>
+        <div class="stat-callout c-orange">{total_eal_2060/avg_annual_loss:.0f}x</div>
+        <div class="stat-context">vs current annual<br>weather disruption costs</div>
       </div>
-      <div style="flex:1; min-width:200px; padding:1.5rem; background:{BG_CARD}; border-radius:8px;
-                  border-top:3px solid {ORANGE}; text-align:center;">
-        <div class="stat-callout" style="font-size:48px; color:{ORANGE};">${total_eal/1e9:.1f}B</div>
-        <div class="stat-context">combined expected annual loss<br>across ALL four wildcards</div>
+      <div>
+        <div class="stat-callout c-teal">{total_eal_2060/total_eal_2025:.1f}x</div>
+        <div class="stat-context">growth from today's<br>wildcard exposure</div>
       </div>
     </div>
     """, unsafe_allow_html=True)
