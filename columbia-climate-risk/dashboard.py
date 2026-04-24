@@ -424,183 +424,6 @@ def main():
     stn_df   = load_stations()
     lrisk_df = load_line_risk()
 
-    # pre-compute
-    normal = sys_df[(sys_df["heavy_rain"]==0)&(sys_df["extreme_heat"]==0)]
-    rain   = sys_df[sys_df["heavy_rain"]==1]
-    heat   = sys_df[sys_df["extreme_heat"]==1]
-    norm_avg = normal["total_incidents"].mean()
-    rain_avg = rain["total_incidents"].mean()
-    heat_avg = heat["total_incidents"].mean()
-    rain_uplift = (rain_avg/norm_avg - 1)*100
-
-    # ─────────────────────────────────────────────────────────────────────────
-    # HERO
-    # ─────────────────────────────────────────────────────────────────────────
-    st.markdown(f"""
-    <div class="hero">
-      <h1 class="fade-up">Climate risk is<br>reshaping how<br>New York <span class="c-red">moves</span>.</h1>
-      <div class="subtitle fade-up fade-up-d1">
-        Weather in NYC is getting more extreme due to climate change. More rain,
-        more heat, more often. And every time it happens, the subway system that
-        5.5 million people rely on gets broken down, delayed and disrupts lives.
-        We built this to show exactly how bad it is, what it costs to the MTA,
-        and what the future looks like.
-      </div>
-      <div class="attribution fade-up fade-up-d2">
-        Columbia University &nbsp;&middot;&nbsp; MS in Climate Finance
-        &nbsp;&middot;&nbsp; Climate Risk &nbsp;&middot;&nbsp; 2026
-      </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # ─────────────────────────────────────────────────────────────────────────
-    # SECTION 1 — The weather is getting worse
-    # ─────────────────────────────────────────────────────────────────────────
-    section("01", "The weather is getting worse.",
-            "We analyze five years of NYC weather data and the trends are rather obvious. "
-            "Heavy rain events and extreme heat days are happening more often and "
-            "becoming the new normal.")
-
-    kpi_strip([
-        ("Period", "2020 – 2024", "1,827 days"),
-        ("Heavy rain days", f"{len(rain)}", f"{len(rain)/len(sys_df):.1%} of all days"),
-        ("Extreme heat days", f"{len(heat)}", f"{len(heat)/len(sys_df):.1%} of all days"),
-        ("Rain uplift", f"+{rain_uplift:.0f}%", "more incidents on rain days"),
-    ])
-
-    # Precipitation timeline
-    fig_precip = go.Figure()
-    colors_rain = np.where(sys_df["precip_mm"] >= 25, BLUE, MUTED)
-    fig_precip.add_trace(go.Bar(
-        x=sys_df["date"], y=sys_df["precip_mm"],
-        marker_color=colors_rain, name="Precipitation",
-    ))
-    fig_precip.add_hline(y=25, line_dash="dot", line_color=BLUE, opacity=0.6,
-                         annotation=dict(text="Heavy rain threshold (25 mm)",
-                                         font=dict(size=11, color=TEXT_DIM),
-                                         xanchor="left"))
-    styled_fig(fig_precip, height=280,
-               title=dict(text="Daily Precipitation (mm)", font=dict(size=14, color=TEXT_DIM)),
-               xaxis=dict(gridcolor=MUTED), yaxis=dict(gridcolor=MUTED))
-    st.plotly_chart(fig_precip, use_container_width=True)
-
-    # Heat timeline (Celsius)
-    fig_heat = go.Figure()
-    fig_heat.add_trace(go.Scatter(
-        x=sys_df["date"], y=sys_df["tmax_c"],
-        mode="lines", line=dict(color=RED, width=1),
-        fill="tozeroy", fillcolor="rgba(240,112,113,0.08)",
-    ))
-    fig_heat.add_hline(y=32.2, line_dash="dot", line_color=RED, opacity=0.6,
-                       annotation=dict(text="Extreme heat threshold (32.2 °C)",
-                                       font=dict(size=11, color=TEXT_DIM),
-                                       xanchor="left"))
-    styled_fig(fig_heat, height=260,
-               title=dict(text="Daily Maximum Temperature (°C)", font=dict(size=14, color=TEXT_DIM)),
-               showlegend=False)
-    st.plotly_chart(fig_heat, use_container_width=True)
-
-    # Future projection callout
-    st.markdown(f"""
-    <div style="display:flex; gap:3rem; margin:2rem 0 1rem 0;" class="fade-up">
-      <div>
-        <div class="stat-callout c-blue">+23%</div>
-        <div class="stat-context">projected increase in extreme<br>precipitation days by 2050<br>
-        <span style="font-size:11px;color:{MUTED}">Source: NYC Climate Resiliency Design Guidelines v4.1</span></div>
-      </div>
-      <div>
-        <div class="stat-callout c-red">+3.2 °C</div>
-        <div class="stat-context">projected rise in average summer<br>temperatures by mid-century<br>
-        <span style="font-size:11px;color:{MUTED}">Source: NPCC 2024 Climate Assessment</span></div>
-      </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    divider()
-
-    # ─────────────────────────────────────────────────────────────────────────
-    # SECTION 2 — What that means for the subway
-    # ─────────────────────────────────────────────────────────────────────────
-    section("02", "When it rains, the subway breaks.",
-            "Real MTA incident and delays data from 2020 to 2024, show that on heavy "
-            "rain days the system sees <strong>{:.0f}%</strong> more incidents than normal. "
-            "This is a systemic preparedness problem towards extreme weather events.".format(rain_uplift))
-
-    # Condition comparison bars
-    fig_cond = go.Figure()
-    labels = ["Normal days", "Heavy rain days", "Extreme heat days"]
-    vals   = [norm_avg, rain_avg, heat_avg]
-    colors = [TEXT_DIM, BLUE, RED]
-    fig_cond.add_trace(go.Bar(
-        x=labels, y=vals, marker_color=colors,
-        text=[f"{v:.0f}" for v in vals], textposition="outside",
-        textfont=dict(color=TEXT, size=14, family="'JetBrains Mono', monospace"),
-    ))
-    styled_fig(fig_cond, height=340, showlegend=False,
-               title=dict(text="Average Daily Incidents by Weather Condition",
-                          font=dict(size=14, color=TEXT_DIM)),
-               yaxis=dict(title="Incidents per Day", gridcolor=MUTED))
-    st.plotly_chart(fig_cond, use_container_width=True)
-
-    # Monthly dual axis
-    sys_m = sys_df.copy()
-    sys_m["ym"] = sys_m["date"].dt.to_period("M").dt.to_timestamp()
-    monthly = sys_m.groupby("ym").agg(
-        precip=("precip_mm","sum"), incidents=("total_incidents","sum")
-    ).reset_index()
-
-    fig_dual = make_subplots(specs=[[{"secondary_y": True}]])
-    fig_dual.add_trace(go.Bar(
-        x=monthly["ym"], y=monthly["precip"], name="Precipitation (mm)",
-        marker_color=BLUE, opacity=0.4,
-    ), secondary_y=False)
-    fig_dual.add_trace(go.Scatter(
-        x=monthly["ym"], y=monthly["incidents"], name="Incidents",
-        line=dict(color=TEAL, width=2),
-    ), secondary_y=True)
-    styled_fig(fig_dual, height=320,
-               title=dict(text="Monthly Precipitation vs Transit Incidents",
-                          font=dict(size=14, color=TEXT_DIM)),
-               legend=dict(orientation="h", y=-0.15, font=dict(size=11)))
-    fig_dual.update_yaxes(title_text="Precipitation (mm)", secondary_y=False,
-                          gridcolor=MUTED, tickfont=dict(color=TEXT_DIM))
-    fig_dual.update_yaxes(title_text="Total Incidents", secondary_y=True,
-                          gridcolor="rgba(0,0,0,0)", tickfont=dict(color=TEXT_DIM))
-    st.plotly_chart(fig_dual, use_container_width=True)
-
-    # Per-line uplift
-    if line_df is not None:
-        norm_g = line_df[line_df["heavy_rain"]==0].groupby("line")["total_incidents"].mean()
-        rain_g = line_df[line_df["heavy_rain"]==1].groupby("line")["total_incidents"].mean()
-        uplift = ((rain_g - norm_g) / norm_g * 100).dropna().sort_values(ascending=True).reset_index()
-        uplift.columns = ["line", "pct"]
-
-        fig_up = go.Figure(go.Bar(
-            x=uplift["pct"], y=uplift["line"], orientation="h",
-            marker_color=[BLUE if v >= 0 else TEXT_DIM for v in uplift["pct"]],
-            text=[f"{v:+.0f}%" for v in uplift["pct"]],
-            textposition="outside",
-            textfont=dict(size=11, color=TEXT_DIM,
-                          family="'JetBrains Mono', monospace"),
-        ))
-        fig_up.add_vline(x=0, line_color=MUTED)
-        styled_fig(fig_up, height=max(380, len(uplift)*22),
-                   title=dict(text="Incident Uplift on Heavy Rain Days by Subway Line",
-                              font=dict(size=14, color=TEXT_DIM)),
-                   showlegend=False)
-        st.plotly_chart(fig_up, use_container_width=True)
-
-    divider()
-
-    # ─────────────────────────────────────────────────────────────────────────
-    # SECTION 3 — Correlation deep-dive
-    # ─────────────────────────────────────────────────────────────────────────
-    section("03", "Quantifying the link.",
-            "Statistical analysis confirms what all of us who have had the misfortune "
-            "of taking the trains on rainy days already know. More rain means more delays. "
-            "Higher temps mean more breakdowns. The correlations are significant and "
-            "consistent across all lines.")
-
     LABEL_MAP = {
         "precip_mm": "Precipitation (mm)",
         "tmax_f": "Max Temp (°F)",
@@ -626,84 +449,300 @@ def main():
         "season": "Season",
     }
 
-    if corr is not None:
-        wx = [c for c in ["precip_mm","tmax_f","heavy_rain","extreme_heat",
-                           "roll7_precip_mm","weather_stress"] if c in corr.columns]
-        tg = [c for c in ["total_incidents","avg_delay_min"] if c in corr.columns]
-        sub = corr.loc[
-            [r for r in wx+tg if r in corr.index],
-            [c for c in wx+tg if c in corr.columns]
-        ].round(3)
+    # pre-compute
+    normal = sys_df[(sys_df["heavy_rain"]==0)&(sys_df["extreme_heat"]==0)]
+    rain   = sys_df[sys_df["heavy_rain"]==1]
+    heat   = sys_df[sys_df["extreme_heat"]==1]
+    norm_avg = normal["total_incidents"].mean()
+    rain_avg = rain["total_incidents"].mean()
+    heat_avg = heat["total_incidents"].mean()
+    rain_uplift = (rain_avg/norm_avg - 1)*100
 
-        display_x = [LABEL_MAP.get(c, c) for c in sub.columns]
-        display_y = [LABEL_MAP.get(r, r) for r in sub.index]
+    # Economic pre-compute
+    COST_MULTIPLIER = 27.5
+    if loss_df is not None:
+        loss_df = loss_df.copy()
+        loss_df["economic_loss_usd"] = loss_df["economic_loss_usd"] * COST_MULTIPLIER
+        total_loss = loss_df["economic_loss_usd"].sum()
+        avg_annual_loss = total_loss / 5
+        annual = loss_df.groupby(loss_df["date"].dt.year)["economic_loss_usd"].sum().reset_index()
+        annual.columns = ["year", "loss"]
+        base_annual = annual["loss"].mean()
+    else:
+        total_loss = avg_annual_loss = base_annual = 0
+        annual = pd.DataFrame(columns=["year", "loss"])
 
-        fig_corr = go.Figure(go.Heatmap(
-            z=sub.values, x=display_x, y=display_y,
-            colorscale=[[0, BLUE], [0.5, BG], [1, RED]],
-            zmin=-1, zmax=1,
-            text=sub.values.round(2), texttemplate="%{text}",
-            textfont=dict(size=11),
-            colorbar=dict(title="r", tickfont=dict(color=TEXT_DIM)),
-        ))
-        styled_fig(fig_corr, height=400,
-                   title=dict(text="Correlation Matrix — Weather vs Transit Disruption",
-                              font=dict(size=14, color=TEXT_DIM)),
-                   xaxis=dict(tickangle=30, tickfont=dict(size=10)))
-        st.plotly_chart(fig_corr, use_container_width=True)
+    # ─────────────────────────────────────────────────────────────────────────
+    # HERO
+    # ─────────────────────────────────────────────────────────────────────────
+    st.markdown(f"""
+    <div class="hero">
+      <h1 class="fade-up">The MTA is not<br>prepared for<br><span class="c-red">wildcard</span> scenarios.</h1>
+      <div class="subtitle fade-up fade-up-d1">
+        A 100-year flood every five years. Simultaneous failure across multiple lines.
+        Emergency shutdowns lasting days. These aren't hypotheticals. They're the
+        scenarios the MTA's century-old infrastructure was never built to handle,
+        and climate change is making them inevitable.
+      </div>
+      <div class="attribution fade-up fade-up-d2">
+        Columbia University &nbsp;&middot;&nbsp; MS in Climate Finance
+        &nbsp;&middot;&nbsp; Climate Risk &nbsp;&middot;&nbsp; 2026
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
 
-    # Scatter
-    col1, col2 = st.columns(2)
-    with col1:
-        sub2 = sys_df[["precip_mm","total_incidents"]].dropna()
-        r_val, p_val = pearsonr(sub2["precip_mm"], sub2["total_incidents"])
-        coefs = np.polyfit(sub2["precip_mm"], sub2["total_incidents"], 1)
-        x_ln = np.linspace(sub2["precip_mm"].min(), sub2["precip_mm"].max(), 50)
+    # ─────────────────────────────────────────────────────────────────────────
+    # SECTION 1 — Wildcard Scenario Modeling
+    # ─────────────────────────────────────────────────────────────────────────
+    section("01", "What happens when everything goes wrong at once.",
+            "Climatic wildcard scenarios go beyond normal bad weather. Think simultaneous "
+            "extreme storms overwhelming drainage, power outages cascading across the "
+            "network, and emergency policy mandates shutting down MTA services for days. "
+            "We modeled four of these scenarios to estimate what the MTA is really facing.")
 
-        fig_sc = go.Figure()
-        fig_sc.add_trace(go.Scatter(
-            x=sub2["precip_mm"], y=sub2["total_incidents"], mode="markers",
-            marker=dict(color=BLUE, opacity=0.25, size=4), name="Daily obs",
-        ))
-        fig_sc.add_trace(go.Scatter(
-            x=x_ln, y=np.polyval(coefs, x_ln), mode="lines",
-            line=dict(color=TEXT, width=2, dash="dash"), name="OLS trend",
-        ))
-        styled_fig(fig_sc, height=340, showlegend=False,
-                   title=dict(text=f"Precipitation vs Incidents (r = {r_val:.3f})",
-                              font=dict(size=13, color=TEXT_DIM)),
-                   xaxis=dict(title="Daily Precipitation (mm)", gridcolor=MUTED),
-                   yaxis=dict(title="Daily Incidents", gridcolor=MUTED))
-        st.plotly_chart(fig_sc, use_container_width=True)
+    # Scenario definitions
+    SCENARIOS = {
+        "100-Year Flood (Recurring)": {
+            "desc": "A Sandy-scale flood event recurring every 5-10 years instead of every 100. "
+                    "150+ stations inundated, tunnels flooded, 3-5 day full shutdown.",
+            "direct_cost": 5_000_000_000,
+            "annual_prob": 0.15,
+            "lines_affected": 22,
+            "recovery_days": 14,
+            "color": BLUE,
+        },
+        "Cascading Power Failure": {
+            "desc": "Extreme heat wave triggers grid overload. Traction power fails across "
+                    "multiple boroughs simultaneously. Signal systems go dark. No trains move.",
+            "direct_cost": 800_000_000,
+            "annual_prob": 0.08,
+            "lines_affected": 27,
+            "recovery_days": 5,
+            "color": RED,
+        },
+        "Multi-Day Heat Emergency": {
+            "desc": "Week-long heat dome with temperatures exceeding 43 °C. Emergency mandate "
+                    "shuts underground service to protect riders. Track buckling across the network.",
+            "direct_cost": 1_200_000_000,
+            "annual_prob": 0.10,
+            "lines_affected": 18,
+            "recovery_days": 10,
+            "color": ORANGE,
+        },
+        "Flash Flood + Storm Surge": {
+            "desc": "Atmospheric river dumps 150mm in 6 hours while coastal storm surge pushes "
+                    "seawater into tunnel ventilation shafts. Sewer system designed for 44mm/hr "
+                    "fails completely.",
+            "direct_cost": 3_500_000_000,
+            "annual_prob": 0.12,
+            "lines_affected": 15,
+            "recovery_days": 21,
+            "color": TEAL,
+        },
+    }
 
-    with col2:
-        sub3 = sys_df[["tmax_c","total_incidents"]].dropna()
-        r_val2, _ = pearsonr(sub3["tmax_c"], sub3["total_incidents"])
-        coefs2 = np.polyfit(sub3["tmax_c"], sub3["total_incidents"], 1)
-        x_ln2 = np.linspace(sub3["tmax_c"].min(), sub3["tmax_c"].max(), 50)
+    scenario_choice = st.radio(
+        "Select scenario",
+        list(SCENARIOS.keys()),
+        horizontal=True, index=0,
+    )
+    sc = SCENARIOS[scenario_choice]
 
-        fig_sc2 = go.Figure()
-        fig_sc2.add_trace(go.Scatter(
-            x=sub3["tmax_c"], y=sub3["total_incidents"], mode="markers",
-            marker=dict(color=RED, opacity=0.25, size=4),
-        ))
-        fig_sc2.add_trace(go.Scatter(
-            x=x_ln2, y=np.polyval(coefs2, x_ln2), mode="lines",
-            line=dict(color=TEXT, width=2, dash="dash"),
-        ))
-        styled_fig(fig_sc2, height=340, showlegend=False,
-                   title=dict(text=f"Max Temperature vs Incidents (r = {r_val2:.3f})",
-                              font=dict(size=13, color=TEXT_DIM)),
-                   xaxis=dict(title="Max Temperature (°C)", gridcolor=MUTED),
-                   yaxis=dict(title="Daily Incidents", gridcolor=MUTED))
-        st.plotly_chart(fig_sc2, use_container_width=True)
+    st.markdown(f"""
+    <div style="padding:1.5rem; background:{BG_CARD}; border-radius:8px;
+                border-left:4px solid {sc['color']}; margin:1rem 0 2rem 0;" class="fade-up">
+      <p style="color:{TEXT};font-size:15px;line-height:1.6;margin:0;">{sc['desc']}</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    kpi_strip([
+        ("Direct cost", f"${sc['direct_cost']/1e9:.1f}B", "infrastructure + lost revenue"),
+        ("Annual probability", f"{sc['annual_prob']:.0%}", "and rising with climate change"),
+        ("Lines affected", f"{sc['lines_affected']}", f"of 27 total lines"),
+        ("Recovery time", f"{sc['recovery_days']}+ days", "to full service restoration"),
+    ])
+
+    # Expected annual loss by scenario
+    sc_names = list(SCENARIOS.keys())
+    sc_eal = [SCENARIOS[s]["direct_cost"] * SCENARIOS[s]["annual_prob"] for s in sc_names]
+    sc_colors = [SCENARIOS[s]["color"] for s in sc_names]
+    sc_short = ["100-Yr Flood", "Power Failure", "Heat Emergency", "Flash Flood"]
+
+    fig_eal = go.Figure(go.Bar(
+        x=sc_short, y=sc_eal,
+        marker_color=sc_colors,
+        text=[f"${v/1e6:.0f}M" for v in sc_eal],
+        textposition="outside",
+        textfont=dict(color=TEXT, size=13, family="'JetBrains Mono', monospace"),
+    ))
+    styled_fig(fig_eal, height=340, showlegend=False,
+               title=dict(text="Expected Annual Loss by Wildcard Scenario",
+                          font=dict(size=14, color=TEXT_DIM)),
+               yaxis=dict(title="Expected Annual Loss (USD)", gridcolor=MUTED))
+    st.plotly_chart(fig_eal, use_container_width=True)
+
+    total_eal = sum(sc_eal)
+    st.markdown(f"""
+    <div style="display:flex; gap:3rem; margin:1.5rem 0;" class="fade-up">
+      <div>
+        <div class="stat-callout c-red">${total_eal/1e9:.1f}B</div>
+        <div class="stat-context">combined expected annual loss<br>across all wildcard scenarios</div>
+      </div>
+      <div>
+        <div class="stat-callout c-orange">{total_eal/avg_annual_loss:.0f}x</div>
+        <div class="stat-context">multiplier vs current annual<br>weather disruption costs</div>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Visioning narrative
+    st.markdown(f"""
+    <div style="margin:2rem 0; padding:1.5rem 2rem; background:{BG_CARD}; border-radius:8px;" class="fade-up">
+      <p style="color:{TEAL};font-weight:600;font-size:15px;margin-bottom:12px;">Beyond repair: visioning the future</p>
+      <p style="color:{TEXT_DIM};font-size:14px;line-height:1.7;margin-bottom:12px;">
+        Wildcard scenarios like a 100-year flood every five or ten years require
+        <strong style="color:{TEXT}">visioning</strong>, not just planning. Full or partial
+        retreat from flood-prone areas could trigger climate migration toward outer boroughs,
+        permanently shifting where people live and work based on transit reliability.
+      </p>
+      <p style="color:{TEXT_DIM};font-size:14px;line-height:1.7;margin-bottom:12px;">
+        Heat risk particularly affects vulnerable populations facing long walking and waiting
+        times. Transit users will increasingly shift to hybrid mobility: more buses, ferries,
+        and elevated transit. The MTA must diversify its offerings.
+      </p>
+      <p style="color:{TEXT_DIM};font-size:14px;line-height:1.7;margin:0;">
+        The opportunities are real: resilience bonds tied to congestion pricing can fund
+        infrastructure rebuilds. Shifting lines from underground to elevated systems reduces
+        flood exposure. Nature-based solutions like green stormwater infrastructure address
+        root causes. Solar-powered cooling at stations protects underserved neighborhoods.
+      </p>
+    </div>
+    """, unsafe_allow_html=True)
 
     divider()
 
     # ─────────────────────────────────────────────────────────────────────────
-    # SECTION 4 — ML Model
+    # SECTION 2 — Economic cost (moved up)
     # ─────────────────────────────────────────────────────────────────────────
-    section("04", "Predicting disruptions with machine learning.",
+    section("02", "The cost is already $2.5 million per year. It will get worse.",
+            "That's the conservative number based on direct rider delays, operational "
+            "disruption, and cascading service impacts. The real cost including "
+            "infrastructure damage, emergency response, and long-term ridership "
+            "erosion is likely 3 to 5 times higher.")
+
+    if loss_df is not None:
+        rain_loss = loss_df.loc[loss_df["heavy_rain"]==1, "economic_loss_usd"].sum()
+        heat_loss = loss_df.loc[loss_df["extreme_heat"]==1, "economic_loss_usd"].sum()
+
+        kpi_strip([
+            ("Total losses (2020-2024)", f"${total_loss/1e6:.1f}M", "direct + indirect costs"),
+            ("Annual average", f"${avg_annual_loss/1e6:.1f}M", "per year"),
+            ("Rain-driven", f"${rain_loss/1e6:.1f}M", f"{rain_loss/total_loss:.0%} of total"),
+            ("Heat-driven", f"${heat_loss/1e6:.1f}M", f"{heat_loss/total_loss:.0%} of total"),
+        ])
+
+        fig_annual = go.Figure(go.Bar(
+            x=annual["year"], y=annual["loss"],
+            marker=dict(color=annual["loss"],
+                        colorscale=[[0, BG_HINT], [1, ORANGE]],
+                        showscale=False),
+            text=[f"${v/1e6:.1f}M" for v in annual["loss"]],
+            textposition="outside",
+            textfont=dict(color=TEXT_DIM, size=12,
+                          family="'JetBrains Mono', monospace"),
+        ))
+        styled_fig(fig_annual, height=320,
+                   title=dict(text="Annual Economic Loss from Weather Disruptions",
+                              font=dict(size=14, color=TEXT_DIM)),
+                   xaxis=dict(title="", gridcolor=MUTED),
+                   yaxis=dict(title="Economic Loss (USD)", gridcolor=MUTED))
+        st.plotly_chart(fig_annual, use_container_width=True)
+
+        # Projection
+        st.markdown(f"""
+        <div class="section-label" style="padding-top:1.5rem">PROJECTION</div>
+        <div class="section-title" style="font-size:24px">This gets much worse from here</div>
+        <div class="section-body">
+          Three scenarios based on NPCC 2024 climate projections for NYC.
+          Even the baseline assumption shows costs doubling by 2040.
+        </div>
+        """, unsafe_allow_html=True)
+
+        years_proj = list(range(2025, 2061))
+        baseline_proj = [base_annual * (1.02 ** (y-2024)) for y in years_proj]
+        moderate_proj = [base_annual * (1.045 ** (y-2024)) for y in years_proj]
+        high_proj     = [base_annual * (1.08  ** (y-2024)) for y in years_proj]
+
+        fig_proj = go.Figure()
+        fig_proj.add_trace(go.Scatter(
+            x=annual["year"], y=annual["loss"],
+            mode="lines+markers", name="Historical",
+            line=dict(color=TEXT, width=2), marker=dict(color=TEXT, size=6),
+        ))
+        for vals, name, color, dash in [
+            (baseline_proj, "Baseline (+2%/yr)",   TEXT_DIM, "dot"),
+            (moderate_proj, "SSP2-4.5 (+4.5%/yr)", ORANGE,  "dash"),
+            (high_proj,     "SSP5-8.5 (+8%/yr)",   RED,     "solid"),
+        ]:
+            fig_proj.add_trace(go.Scatter(
+                x=years_proj, y=vals, name=name,
+                line=dict(color=color, width=2, dash=dash),
+            ))
+        fig_proj.add_trace(go.Scatter(
+            x=years_proj + years_proj[::-1],
+            y=high_proj + moderate_proj[::-1],
+            fill="toself", fillcolor="rgba(240,112,113,0.08)",
+            line=dict(width=0), showlegend=False, hoverinfo="skip",
+        ))
+        styled_fig(fig_proj, height=380,
+                   title=dict(text="Projected Annual Weather-Driven Losses",
+                              font=dict(size=14, color=TEXT_DIM)),
+                   xaxis=dict(title="", gridcolor=MUTED),
+                   yaxis=dict(title="Annual Loss (USD)", gridcolor=MUTED),
+                   legend=dict(orientation="h", y=-0.15, font=dict(size=11)))
+        st.plotly_chart(fig_proj, use_container_width=True)
+
+        high_2050 = base_annual * (1.08 ** (2050-2024))
+        st.markdown(f"""
+        <div style="display:flex; gap:3rem; margin:1.5rem 0;" class="fade-up">
+          <div>
+            <div class="stat-callout c-orange">${high_2050/1e6:.1f}M</div>
+            <div class="stat-context">projected annual loss by 2050<br>under high-emissions scenario</div>
+          </div>
+          <div>
+            <div class="stat-callout c-red">{high_2050/base_annual:.0f}x</div>
+            <div class="stat-context">multiplier vs current<br>baseline average</div>
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Cumulative curve
+        dfs = loss_df.sort_values("date")
+        dfs["cumulative"] = dfs["economic_loss_usd"].cumsum()
+        major = dfs[dfs["event_type"].isin(["extreme_rain", "heat_emergency"])]
+        fig_cum = go.Figure()
+        fig_cum.add_trace(go.Scatter(
+            x=dfs["date"], y=dfs["cumulative"],
+            fill="tozeroy", fillcolor="rgba(234,151,85,0.12)",
+            line=dict(color=ORANGE, width=2), name="Cumulative loss",
+        ))
+        if not major.empty:
+            fig_cum.add_trace(go.Scatter(
+                x=major["date"], y=major["cumulative"], mode="markers",
+                marker=dict(color=RED, size=7, symbol="circle"), name="Major event",
+            ))
+        styled_fig(fig_cum, height=300,
+                   title=dict(text="Cumulative Economic Loss Over Time",
+                              font=dict(size=14, color=TEXT_DIM)),
+                   legend=dict(orientation="h", y=-0.15, font=dict(size=11)))
+        st.plotly_chart(fig_cum, use_container_width=True)
+
+    divider()
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # SECTION 3 — ML Model
+    # ─────────────────────────────────────────────────────────────────────────
+    section("03", "Predicting disruptions with machine learning.",
             "We trained Ridge and Random Forest models on weather data to predict "
             "daily subway incidents. The biggest drivers? Weather stress index, "
             "heavy rain flags, and extreme heat events. The model demonstrates what "
@@ -753,13 +792,12 @@ def main():
                 fig_pv.add_shape(type="line", x0=0, y0=0, x1=lim, y1=lim,
                                  line=dict(dash="dash", color=MUTED))
                 styled_fig(fig_pv, height=360, showlegend=False,
-                           title=dict(text="Predicted vs Actual Incidents (Random Forest)",
+                           title=dict(text="Predicted vs Actual Incidents (RF)",
                                       font=dict(size=13, color=TEXT_DIM)),
                            xaxis=dict(title="Actual Incidents", gridcolor=MUTED),
                            yaxis=dict(title="Predicted Incidents", gridcolor=MUTED))
                 st.plotly_chart(fig_pv, use_container_width=True)
 
-        # Ridge coefficients
         coef_data = ridge.get("coefs", {})
         wx_keys = ["precip_mm","tmax_f","heavy_rain","extreme_heat",
                    "weather_stress","roll7_precip_mm","heat_wave_day"]
@@ -778,154 +816,347 @@ def main():
             ))
             fig_rc.add_vline(x=0, line_color=MUTED)
             styled_fig(fig_rc, height=300, showlegend=False,
-                       title=dict(text="Ridge Regression Coefficients (Standardised Weather Features)",
+                       title=dict(text="Ridge Coefficients (Standardised Weather Features)",
                                   font=dict(size=13, color=TEXT_DIM)))
             st.plotly_chart(fig_rc, use_container_width=True)
 
     divider()
 
     # ─────────────────────────────────────────────────────────────────────────
-    # SECTION 5 — Economic cost
+    # SECTION 4 — Global Transit Comparison
     # ─────────────────────────────────────────────────────────────────────────
-    section("05", "The cost is already significant. It will get worse.",
-            "Weather disruptions cost the MTA system an estimated $2.5 million per year "
-            "in rider productivity losses, operational costs, and cascading delays. "
-            "That's the conservative number. The real cost including infrastructure "
-            "damage, emergency response, and long-term ridership erosion is likely "
-            "3 to 5 times higher.")
+    section("04", "NYC MTA can learn from other flood- and heat-prone cities.",
+            "NYC is uniquely exposed on both flood and heat. Its subway is the oldest "
+            "and densest underground network in North America, with infrastructure built "
+            "for a climate that no longer exists. But other cities are facing similar "
+            "challenges and some are further ahead.")
 
-    if loss_df is not None:
-        # Scale to full economic cost including indirect impacts (operational,
-        # infrastructure wear, ridership erosion, emergency response)
-        COST_MULTIPLIER = 27.5
-        loss_df = loss_df.copy()
-        loss_df["economic_loss_usd"] = loss_df["economic_loss_usd"] * COST_MULTIPLIER
+    # Comparison data
+    CITIES = [
+        {"city": "New York City", "system": "MTA", "flood": "Extreme", "heat": "High",
+         "flood_score": 9.5, "heat_score": 7.5,
+         "key_fact": "Sandy inundated 150 stations, $5B damage. Sewer designed for 44mm/hr, storms now exceed 63mm/hr.",
+         "preparedness": "$7.6B post-Sandy hardening. 2024 Climate Roadmap with $6B 10-yr plan. $1.5B committed 2025-29.",
+         "flag": "focus"},
+        {"city": "Tokyo", "system": "Metro/Toei", "flood": "Low (managed)", "heat": "Moderate",
+         "flood_score": 3.0, "heat_score": 5.5,
+         "key_fact": "G-Cans underground reservoir prevents ~$930M flood damage annually. Triggered ~7 times/year.",
+         "preparedness": "World's first certified resilience bond ($330M, Oct 2025). Full AC network. Gold standard.",
+         "flag": "leader"},
+        {"city": "London", "system": "TfL / Underground", "flood": "High", "heat": "Extreme",
+         "flood_score": 7.5, "heat_score": 9.0,
+         "key_fact": "477 climate risks identified in 2024. Deep tube tunnels exceed 30 °C. Hit 40 °C in 2022.",
+         "preparedness": "First Climate Adaptation Plan (2023). AC trains for Piccadilly from 2025. Thames TE2100 plan.",
+         "flag": "peer"},
+        {"city": "Paris", "system": "RATP", "flood": "High", "heat": "High",
+         "flood_score": 7.0, "heat_score": 7.5,
+         "key_fact": "Seine flooding threatens central Metro. Only 10% green space. Most cars lack AC.",
+         "preparedness": "No comprehensive metro climate roadmap. Relies on citywide Seine flood plans. Cautionary parallel.",
+         "flag": "lagging"},
+        {"city": "Singapore", "system": "SMRT / MRT", "flood": "Moderate", "heat": "High",
+         "flood_score": 5.0, "heat_score": 8.5,
+         "key_fact": "Very hot days (>35 °C) projected 4/yr to 351/yr by 2100. Marina Barrage provides flood control.",
+         "preparedness": "S$125M research programme. $100B long-term coastal protection. MRT fully air-conditioned.",
+         "flag": "proactive"},
+        {"city": "Boston", "system": "MBTA", "flood": "High", "heat": "Moderate",
+         "flood_score": 7.0, "heat_score": 5.0,
+         "key_fact": "Blue Line coastal exposure to Boston Harbor. Airport station flood risk from nor'easters.",
+         "preparedness": "2024 Climate Assessment. $20M Blue Line tunnel flood portal. Aquarium station flood-proofing done.",
+         "flag": "peer"},
+        {"city": "Chicago", "system": "CTA", "flood": "Moderate", "heat": "High",
+         "flood_score": 5.5, "heat_score": 7.5,
+         "key_fact": "50%+ of bus stops and rail stations rated high/very high heat vulnerability.",
+         "preparedness": "CMAP Transportation Resilience Plan (TRIP) launched. Equity-focused investments planned.",
+         "flag": "emerging"},
+        {"city": "Washington DC", "system": "WMATA", "flood": "Moderate", "heat": "High",
+         "flood_score": 5.0, "heat_score": 7.0,
+         "key_fact": "Flash flooding affects entrances. Potomac storm surge risk. Aging HVAC systems.",
+         "preparedness": "$874M Climate Bonds (2021). No published flood/heat roadmap comparable to MTA.",
+         "flag": "lagging"},
+    ]
 
-        total = loss_df["economic_loss_usd"].sum()
-        rain_loss = loss_df.loc[loss_df["heavy_rain"]==1, "economic_loss_usd"].sum()
-        heat_loss = loss_df.loc[loss_df["extreme_heat"]==1, "economic_loss_usd"].sum()
-        avg_annual = total / 5
+    # Scatter: flood vs heat risk
+    city_names = [c["city"] for c in CITIES]
+    flood_scores = [c["flood_score"] for c in CITIES]
+    heat_scores = [c["heat_score"] for c in CITIES]
+    flag_colors = {"focus": RED, "leader": GREEN, "peer": TEAL, "proactive": BLUE,
+                   "emerging": YELLOW, "lagging": ORANGE}
+    marker_colors = [flag_colors.get(c["flag"], TEXT_DIM) for c in CITIES]
+    marker_sizes = [18 if c["flag"] == "focus" else 12 for c in CITIES]
 
-        kpi_strip([
-            ("Total losses (2020-2024)", f"${total/1e6:.1f}M", "direct + indirect costs"),
-            ("Annual average", f"${avg_annual/1e6:.1f}M", "per year"),
-            ("Rain-driven", f"${rain_loss/1e6:.1f}M", f"{rain_loss/total:.0%} of total"),
-            ("Heat-driven", f"${heat_loss/1e6:.1f}M", f"{heat_loss/total:.0%} of total"),
-        ])
+    fig_global = go.Figure()
+    fig_global.add_trace(go.Scatter(
+        x=flood_scores, y=heat_scores,
+        mode="markers+text",
+        marker=dict(color=marker_colors, size=marker_sizes, opacity=0.9,
+                    line=dict(width=1, color=TEXT_DIM)),
+        text=city_names,
+        textposition="top center",
+        textfont=dict(size=11, color=TEXT, family="'Space Grotesk', sans-serif"),
+    ))
+    # Quadrant lines
+    fig_global.add_hline(y=7, line_dash="dot", line_color=MUTED, opacity=0.5)
+    fig_global.add_vline(x=7, line_dash="dot", line_color=MUTED, opacity=0.5)
+    # Quadrant labels
+    fig_global.add_annotation(x=9, y=9.5, text="HIGHEST RISK", showarrow=False,
+                              font=dict(size=9, color=RED, family="'JetBrains Mono', monospace"))
+    fig_global.add_annotation(x=2, y=4, text="BEST MANAGED", showarrow=False,
+                              font=dict(size=9, color=GREEN, family="'JetBrains Mono', monospace"))
+    styled_fig(fig_global, height=450, showlegend=False,
+               title=dict(text="Global Transit Climate Risk: Flood vs Heat Exposure",
+                          font=dict(size=14, color=TEXT_DIM)),
+               xaxis=dict(title="Flood Risk Score", range=[0, 10.5], gridcolor=MUTED,
+                          dtick=2),
+               yaxis=dict(title="Heat Risk Score", range=[0, 10.5], gridcolor=MUTED,
+                          dtick=2))
+    st.plotly_chart(fig_global, use_container_width=True)
 
-        # Annual bars
-        annual = loss_df.groupby(loss_df["date"].dt.year)["economic_loss_usd"].sum().reset_index()
-        annual.columns = ["year", "loss"]
+    # Comparison table
+    rows_html = ""
+    for c in CITIES:
+        flag_color = flag_colors.get(c["flag"], TEXT_DIM)
+        star = " &#9733;" if c["flag"] == "focus" else ""
+        rows_html += f"""<tr>
+            <td><strong style="color:{flag_color}">{c['city']}{star}</strong><br>
+                <span style="color:{TEXT_DIM};font-size:11px">{c['system']}</span></td>
+            <td style="text-align:center"><span style="color:{BLUE if c['flood_score']>=7 else TEAL if c['flood_score']>=5 else GREEN};font-weight:600">{c['flood']}</span></td>
+            <td style="text-align:center"><span style="color:{RED if c['heat_score']>=7 else ORANGE if c['heat_score']>=5 else GREEN};font-weight:600">{c['heat']}</span></td>
+            <td style="font-size:12px;color:{TEXT_DIM}">{c['key_fact']}</td>
+            <td style="font-size:12px;color:{TEXT_DIM}">{c['preparedness']}</td>
+        </tr>"""
 
-        fig_annual = go.Figure(go.Bar(
-            x=annual["year"], y=annual["loss"],
-            marker=dict(color=annual["loss"],
-                        colorscale=[[0, BG_HINT], [1, ORANGE]],
-                        showscale=False),
-            text=[f"${v/1e6:.1f}M" for v in annual["loss"]],
-            textposition="outside",
-            textfont=dict(color=TEXT_DIM, size=12,
-                          family="'JetBrains Mono', monospace"),
-        ))
-        styled_fig(fig_annual, height=320,
-                   title=dict(text="Annual Economic Loss from Weather Disruptions",
-                              font=dict(size=14, color=TEXT_DIM)),
-                   xaxis=dict(title="", gridcolor=MUTED),
-                   yaxis=dict(title="Economic Loss (USD)", gridcolor=MUTED))
-        st.plotly_chart(fig_annual, use_container_width=True)
+    st.markdown(f"""
+    <table class="risk-table" style="font-size:12px;">
+      <thead><tr>
+        <th style="width:14%">City / System</th>
+        <th style="width:8%;text-align:center">Flood</th>
+        <th style="width:8%;text-align:center">Heat</th>
+        <th style="width:35%">Key Threats</th>
+        <th style="width:35%">Preparedness</th>
+      </tr></thead>
+      <tbody>{rows_html}</tbody>
+    </table>
+    """, unsafe_allow_html=True)
 
-        # Scenario projection
-        st.markdown(f"""
-        <div class="section-label" style="padding-top:1.5rem">PROJECTION</div>
-        <div class="section-title" style="font-size:24px">This gets much worse from here</div>
-        <div class="section-body">
-          Three scenarios based on NPCC 2024 climate projections for NYC.
-          Even the baseline assumption shows costs doubling by 2040.
-        </div>
-        """, unsafe_allow_html=True)
-
-        # Build projection
-        base_annual = annual["loss"].mean()
-        years_proj = list(range(2025, 2061))
-        # Baseline: +2%/yr, Moderate (SSP2-4.5): +4.5%/yr, High (SSP5-8.5): +8%/yr
-        baseline = [base_annual * (1.02 ** (y-2024)) for y in years_proj]
-        moderate = [base_annual * (1.045 ** (y-2024)) for y in years_proj]
-        high     = [base_annual * (1.08  ** (y-2024)) for y in years_proj]
-
-        fig_proj = go.Figure()
-        # Historical
-        fig_proj.add_trace(go.Scatter(
-            x=annual["year"], y=annual["loss"],
-            mode="lines+markers", name="Historical",
-            line=dict(color=TEXT, width=2),
-            marker=dict(color=TEXT, size=6),
-        ))
-        for vals, name, color, dash in [
-            (baseline, "Baseline (+2%/yr)",     TEXT_DIM, "dot"),
-            (moderate, "SSP2-4.5 (+4.5%/yr)",   ORANGE,  "dash"),
-            (high,     "SSP5-8.5 (+8%/yr)",     RED,     "solid"),
-        ]:
-            fig_proj.add_trace(go.Scatter(
-                x=years_proj, y=vals, name=name,
-                line=dict(color=color, width=2, dash=dash),
-            ))
-        # Fill between moderate and high
-        fig_proj.add_trace(go.Scatter(
-            x=years_proj + years_proj[::-1],
-            y=high + moderate[::-1],
-            fill="toself", fillcolor="rgba(240,112,113,0.08)",
-            line=dict(width=0), showlegend=False, hoverinfo="skip",
-        ))
-        styled_fig(fig_proj, height=380,
-                   title=dict(text="Projected Annual Weather-Driven Losses",
-                              font=dict(size=14, color=TEXT_DIM)),
-                   xaxis=dict(title="", gridcolor=MUTED),
-                   yaxis=dict(title="Annual Loss (USD)", gridcolor=MUTED),
-                   legend=dict(orientation="h", y=-0.15, font=dict(size=11)))
-        st.plotly_chart(fig_proj, use_container_width=True)
-
-        # Big callout
-        high_2050 = base_annual * (1.08 ** (2050-2024))
-        st.markdown(f"""
-        <div style="display:flex; gap:3rem; margin:1.5rem 0;" class="fade-up">
-          <div>
-            <div class="stat-callout c-orange">${high_2050/1e6:.1f}M</div>
-            <div class="stat-context">projected annual loss by 2050<br>under high-emissions scenario</div>
-          </div>
-          <div>
-            <div class="stat-callout c-red">{high_2050/base_annual:.0f}x</div>
-            <div class="stat-context">multiplier vs current<br>baseline average</div>
-          </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        # Cumulative curve
-        dfs = loss_df.sort_values("date")
-        dfs["cumulative"] = dfs["economic_loss_usd"].cumsum()
-        major = dfs[dfs["event_type"].isin(["extreme_rain", "heat_emergency"])]
-
-        fig_cum = go.Figure()
-        fig_cum.add_trace(go.Scatter(
-            x=dfs["date"], y=dfs["cumulative"],
-            fill="tozeroy", fillcolor="rgba(234,151,85,0.12)",
-            line=dict(color=ORANGE, width=2), name="Cumulative loss",
-        ))
-        if not major.empty:
-            fig_cum.add_trace(go.Scatter(
-                x=major["date"], y=major["cumulative"], mode="markers",
-                marker=dict(color=RED, size=7, symbol="circle"), name="Major event",
-            ))
-        styled_fig(fig_cum, height=300,
-                   title=dict(text="Cumulative Economic Loss Over Time", font=dict(size=14, color=TEXT_DIM)),
-                   legend=dict(orientation="h", y=-0.15, font=dict(size=11)))
-        st.plotly_chart(fig_cum, use_container_width=True)
+    # Key takeaway
+    st.markdown(f"""
+    <div style="margin:2rem 0; padding:1.5rem 2rem; background:{BG_CARD}; border-radius:8px;
+                border-left:4px solid {GREEN};" class="fade-up">
+      <p style="color:{GREEN};font-weight:600;font-size:15px;margin-bottom:10px;">What the MTA can learn</p>
+      <p style="color:{TEXT_DIM};font-size:14px;line-height:1.7;margin-bottom:10px;">
+        <strong style="color:{TEXT}">Tokyo</strong> is the gold standard. Its G-Cans underground
+        reservoir system prevents nearly $1B in flood damage annually and in October 2025 issued the
+        world's first certified resilience bond ($330M) for coastal defenses.
+      </p>
+      <p style="color:{TEXT_DIM};font-size:14px;line-height:1.7;margin-bottom:10px;">
+        <strong style="color:{TEXT}">London's</strong> heat challenge rivals NYC's, with deep-tube
+        tunnels still lacking AC and a 2024 risk assessment finding 477 climate hazards for TfL.
+        But their Climate Adaptation Plan and the TE2100 seawall programme show what systematic
+        planning looks like.
+      </p>
+      <p style="color:{TEXT_DIM};font-size:14px;line-height:1.7;margin:0;">
+        <strong style="color:{TEXT}">Paris</strong> is the cautionary tale. Similar flood exposure
+        to NYC but no metro-specific climate roadmap, relying entirely on citywide Seine flood plans.
+        An MTA VP noted that Paris, Tokyo, and London are all experiencing flood events comparable to New York.
+      </p>
+    </div>
+    """, unsafe_allow_html=True)
 
     divider()
 
     # ─────────────────────────────────────────────────────────────────────────
-    # SECTION 6 — Station risk map
+    # SECTION 5 — The weather is getting worse (moved to later)
     # ─────────────────────────────────────────────────────────────────────────
-    section("06", "Every station has a risk profile.",
+    section("05", "The weather is getting worse.",
+            "We analyze five years of NYC weather data and the trends are rather obvious. "
+            "Heavy rain events and extreme heat days are happening more often and "
+            "becoming the new normal.")
+
+    kpi_strip([
+        ("Period", "2020 - 2024", "1,827 days"),
+        ("Heavy rain days", f"{len(rain)}", f"{len(rain)/len(sys_df):.1%} of all days"),
+        ("Extreme heat days", f"{len(heat)}", f"{len(heat)/len(sys_df):.1%} of all days"),
+        ("Rain uplift", f"+{rain_uplift:.0f}%", "more incidents on rain days"),
+    ])
+
+    fig_precip = go.Figure()
+    colors_rain = np.where(sys_df["precip_mm"] >= 25, BLUE, MUTED)
+    fig_precip.add_trace(go.Bar(
+        x=sys_df["date"], y=sys_df["precip_mm"],
+        marker_color=colors_rain, name="Precipitation",
+    ))
+    fig_precip.add_hline(y=25, line_dash="dot", line_color=BLUE, opacity=0.6,
+                         annotation=dict(text="Heavy rain threshold (25 mm)",
+                                         font=dict(size=11, color=TEXT_DIM),
+                                         xanchor="left"))
+    styled_fig(fig_precip, height=280,
+               title=dict(text="Daily Precipitation (mm)", font=dict(size=14, color=TEXT_DIM)),
+               xaxis=dict(gridcolor=MUTED), yaxis=dict(gridcolor=MUTED))
+    st.plotly_chart(fig_precip, use_container_width=True)
+
+    fig_heat = go.Figure()
+    fig_heat.add_trace(go.Scatter(
+        x=sys_df["date"], y=sys_df["tmax_c"],
+        mode="lines", line=dict(color=RED, width=1),
+        fill="tozeroy", fillcolor="rgba(240,112,113,0.08)",
+    ))
+    fig_heat.add_hline(y=32.2, line_dash="dot", line_color=RED, opacity=0.6,
+                       annotation=dict(text="Extreme heat threshold (32.2 °C)",
+                                       font=dict(size=11, color=TEXT_DIM),
+                                       xanchor="left"))
+    styled_fig(fig_heat, height=260,
+               title=dict(text="Daily Maximum Temperature (°C)", font=dict(size=14, color=TEXT_DIM)),
+               showlegend=False)
+    st.plotly_chart(fig_heat, use_container_width=True)
+
+    st.markdown(f"""
+    <div style="display:flex; gap:3rem; margin:2rem 0 1rem 0;" class="fade-up">
+      <div>
+        <div class="stat-callout c-blue">+23%</div>
+        <div class="stat-context">projected increase in extreme<br>precipitation days by 2050<br>
+        <span style="font-size:11px;color:{MUTED}">Source: NYC Climate Resiliency Design Guidelines v4.1</span></div>
+      </div>
+      <div>
+        <div class="stat-callout c-red">+3.2 °C</div>
+        <div class="stat-context">projected rise in average summer<br>temperatures by mid-century<br>
+        <span style="font-size:11px;color:{MUTED}">Source: NPCC 2024 Climate Assessment</span></div>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    divider()
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # SECTION 6 — When it rains, the subway breaks
+    # ─────────────────────────────────────────────────────────────────────────
+    section("06", "When it rains, the subway breaks.",
+            "Real MTA incident and delays data from 2020 to 2024 show that on heavy "
+            "rain days the system sees <strong>{:.0f}%</strong> more incidents than normal. "
+            "This is a systemic preparedness problem towards extreme weather events.".format(rain_uplift))
+
+    fig_cond = go.Figure()
+    cond_labels = ["Normal days", "Heavy rain days", "Extreme heat days"]
+    cond_vals   = [norm_avg, rain_avg, heat_avg]
+    cond_colors = [TEXT_DIM, BLUE, RED]
+    fig_cond.add_trace(go.Bar(
+        x=cond_labels, y=cond_vals, marker_color=cond_colors,
+        text=[f"{v:.0f}" for v in cond_vals], textposition="outside",
+        textfont=dict(color=TEXT, size=14, family="'JetBrains Mono', monospace"),
+    ))
+    styled_fig(fig_cond, height=340, showlegend=False,
+               title=dict(text="Average Daily Incidents by Weather Condition",
+                          font=dict(size=14, color=TEXT_DIM)),
+               yaxis=dict(title="Incidents per Day", gridcolor=MUTED))
+    st.plotly_chart(fig_cond, use_container_width=True)
+
+    sys_m = sys_df.copy()
+    sys_m["ym"] = sys_m["date"].dt.to_period("M").dt.to_timestamp()
+    monthly = sys_m.groupby("ym").agg(
+        precip=("precip_mm","sum"), incidents=("total_incidents","sum")
+    ).reset_index()
+    fig_dual = make_subplots(specs=[[{"secondary_y": True}]])
+    fig_dual.add_trace(go.Bar(
+        x=monthly["ym"], y=monthly["precip"], name="Precipitation (mm)",
+        marker_color=BLUE, opacity=0.4,
+    ), secondary_y=False)
+    fig_dual.add_trace(go.Scatter(
+        x=monthly["ym"], y=monthly["incidents"], name="Incidents",
+        line=dict(color=TEAL, width=2),
+    ), secondary_y=True)
+    styled_fig(fig_dual, height=320,
+               title=dict(text="Monthly Precipitation vs Transit Incidents",
+                          font=dict(size=14, color=TEXT_DIM)),
+               legend=dict(orientation="h", y=-0.15, font=dict(size=11)))
+    fig_dual.update_yaxes(title_text="Precipitation (mm)", secondary_y=False,
+                          gridcolor=MUTED, tickfont=dict(color=TEXT_DIM))
+    fig_dual.update_yaxes(title_text="Total Incidents", secondary_y=True,
+                          gridcolor="rgba(0,0,0,0)", tickfont=dict(color=TEXT_DIM))
+    st.plotly_chart(fig_dual, use_container_width=True)
+
+    # Correlation scatters
+    st.markdown(f"""
+    <div class="section-label" style="padding-top:1.5rem">CORRELATION</div>
+    <div class="section-title" style="font-size:24px">Quantifying the link</div>
+    <div class="section-body">
+      Statistical analysis confirms what all of us who have had the misfortune
+      of taking the trains on rainy days already know. More rain means more delays.
+      Higher temps mean more breakdowns. The correlations are significant and
+      consistent across all lines.
+    </div>
+    """, unsafe_allow_html=True)
+
+    if corr is not None:
+        wx = [c for c in ["precip_mm","tmax_f","heavy_rain","extreme_heat",
+                           "roll7_precip_mm","weather_stress"] if c in corr.columns]
+        tg = [c for c in ["total_incidents","avg_delay_min"] if c in corr.columns]
+        sub = corr.loc[
+            [r for r in wx+tg if r in corr.index],
+            [c for c in wx+tg if c in corr.columns]
+        ].round(3)
+        display_x = [LABEL_MAP.get(c, c) for c in sub.columns]
+        display_y = [LABEL_MAP.get(r, r) for r in sub.index]
+        fig_corr = go.Figure(go.Heatmap(
+            z=sub.values, x=display_x, y=display_y,
+            colorscale=[[0, BLUE], [0.5, BG], [1, RED]],
+            zmin=-1, zmax=1,
+            text=sub.values.round(2), texttemplate="%{text}",
+            textfont=dict(size=11),
+            colorbar=dict(title="r", tickfont=dict(color=TEXT_DIM)),
+        ))
+        styled_fig(fig_corr, height=400,
+                   title=dict(text="Correlation Matrix: Weather vs Transit Disruption",
+                              font=dict(size=14, color=TEXT_DIM)),
+                   xaxis=dict(tickangle=30, tickfont=dict(size=10)))
+        st.plotly_chart(fig_corr, use_container_width=True)
+
+    col1, col2 = st.columns(2)
+    with col1:
+        sub2 = sys_df[["precip_mm","total_incidents"]].dropna()
+        r_val, _ = pearsonr(sub2["precip_mm"], sub2["total_incidents"])
+        coefs = np.polyfit(sub2["precip_mm"], sub2["total_incidents"], 1)
+        x_ln = np.linspace(sub2["precip_mm"].min(), sub2["precip_mm"].max(), 50)
+        fig_sc = go.Figure()
+        fig_sc.add_trace(go.Scatter(
+            x=sub2["precip_mm"], y=sub2["total_incidents"], mode="markers",
+            marker=dict(color=BLUE, opacity=0.25, size=4),
+        ))
+        fig_sc.add_trace(go.Scatter(
+            x=x_ln, y=np.polyval(coefs, x_ln), mode="lines",
+            line=dict(color=TEXT, width=2, dash="dash"),
+        ))
+        styled_fig(fig_sc, height=340, showlegend=False,
+                   title=dict(text=f"Precipitation vs Incidents (r = {r_val:.3f})",
+                              font=dict(size=13, color=TEXT_DIM)),
+                   xaxis=dict(title="Daily Precipitation (mm)", gridcolor=MUTED),
+                   yaxis=dict(title="Daily Incidents", gridcolor=MUTED))
+        st.plotly_chart(fig_sc, use_container_width=True)
+    with col2:
+        sub3 = sys_df[["tmax_c","total_incidents"]].dropna()
+        r_val2, _ = pearsonr(sub3["tmax_c"], sub3["total_incidents"])
+        coefs2 = np.polyfit(sub3["tmax_c"], sub3["total_incidents"], 1)
+        x_ln2 = np.linspace(sub3["tmax_c"].min(), sub3["tmax_c"].max(), 50)
+        fig_sc2 = go.Figure()
+        fig_sc2.add_trace(go.Scatter(
+            x=sub3["tmax_c"], y=sub3["total_incidents"], mode="markers",
+            marker=dict(color=RED, opacity=0.25, size=4),
+        ))
+        fig_sc2.add_trace(go.Scatter(
+            x=x_ln2, y=np.polyval(coefs2, x_ln2), mode="lines",
+            line=dict(color=TEXT, width=2, dash="dash"),
+        ))
+        styled_fig(fig_sc2, height=340, showlegend=False,
+                   title=dict(text=f"Max Temperature vs Incidents (r = {r_val2:.3f})",
+                              font=dict(size=13, color=TEXT_DIM)),
+                   xaxis=dict(title="Max Temperature (°C)", gridcolor=MUTED),
+                   yaxis=dict(title="Daily Incidents", gridcolor=MUTED))
+        st.plotly_chart(fig_sc2, use_container_width=True)
+
+    divider()
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # SECTION 7 — Station risk map
+    # ─────────────────────────────────────────────────────────────────────────
+    section("07", "Every station has a risk profile.",
             "All 496 MTA subway stations scored on flood risk, heat risk, and "
             "estimated annual economic losses. Toggle between dimensions and hover "
             "over any station to see its numbers.")
@@ -941,13 +1172,11 @@ def main():
         horizontal=True, index=0,
         format_func=lambda x: DIM_LABELS.get(x, x),
     )
-
     dim_colors = {
         "flood_risk":        [[0, BG_HINT], [0.5, TEAL], [1, BLUE]],
         "heat_risk":         [[0, BG_HINT], [0.5, ORANGE], [1, RED]],
         "economic_exposure": [[0, BG_HINT], [0.5, YELLOW], [1, ORANGE]],
     }
-
     fig_map = go.Figure(go.Scattermapbox(
         lat=stn_df["lat"], lon=stn_df["lon"],
         mode="markers",
@@ -960,9 +1189,7 @@ def main():
             colorbar=dict(
                 title=dict(text=dim.replace("_"," "), font=dict(color=TEXT_DIM, size=11)),
                 tickfont=dict(color=TEXT_DIM, size=10),
-                bgcolor="rgba(0,0,0,0)",
-                outlinewidth=0,
-                len=0.6,
+                bgcolor="rgba(0,0,0,0)", outlinewidth=0, len=0.6,
             ),
         ),
         text=[
@@ -970,29 +1197,25 @@ def main():
             f"<span style='color:{TEXT_DIM}'>Line {r['primary_line']}  ·  {r['borough']}  ·  {r['structure']}</span><br><br>"
             f"<span style='color:{BLUE}'>Flood Risk</span>  {r['flood_risk']:.1f} / 10<br>"
             f"<span style='color:{RED}'>Heat Risk</span>   {r['heat_risk']:.1f} / 10<br>"
-            f"<span style='color:{ORANGE}'>Est. Annual Losses</span>  {r['economic_exposure']:.1f} / 10"
+            f"<span style='color:{ORANGE}'>Est. Losses</span>  {r['economic_exposure']:.1f} / 10"
             for _, r in stn_df.iterrows()
         ],
         hoverinfo="text",
     ))
     fig_map.update_layout(
-        mapbox=dict(
-            style="carto-darkmatter",
-            center=dict(lat=40.72, lon=-73.95),
-            zoom=10.2,
-        ),
-        height=620,
-        margin=dict(l=0, r=0, t=0, b=0),
+        mapbox=dict(style="carto-darkmatter",
+                    center=dict(lat=40.72, lon=-73.95), zoom=10.2),
+        height=620, margin=dict(l=0, r=0, t=0, b=0),
         paper_bgcolor="rgba(0,0,0,0)",
     )
     st.plotly_chart(fig_map, use_container_width=True)
 
-    # Component breakdown
+    # Risk dimensions grouped bar
     comps = lrisk_df.sort_values("flood_risk", ascending=False)
     fig_comp = go.Figure()
     for comp, color, name in [
-        ("flood_risk",        TEAL,   "Flood Risk"),
-        ("heat_risk",         RED,    "Heat Risk"),
+        ("flood_risk", TEAL, "Flood Risk"),
+        ("heat_risk", RED, "Heat Risk"),
         ("economic_exposure", YELLOW, "Est. Annual Losses"),
     ]:
         fig_comp.add_trace(go.Bar(
@@ -1010,99 +1233,148 @@ def main():
     divider()
 
     # ─────────────────────────────────────────────────────────────────────────
-    # SECTION 7 — Sources & methodology
+    # SECTION 8 — Data, Sources & Methodology
     # ─────────────────────────────────────────────────────────────────────────
+    section("08", "Data, Sources & Methodology", "")
+
+    # --- Data Sources ---
+    st.markdown("### Data Sources")
+
     st.markdown(f"""
-    <div class="source-footer">
-      <div class="section-label">07</div>
-      <h3>Data, Sources & Methodology</h3>
+**Weather Data** --- Daily precipitation, temperature (max/min), wind speed, and derived
+variables sourced from the [Open-Meteo](https://open-meteo.com) historical weather API.
+All readings are from the NYC Central Park weather station for the period January 2020
+through December 2024 (1,827 days). Derived variables include heat index approximation,
+3-day and 7-day rolling precipitation totals, 1-day and 2-day lagged precipitation,
+precipitation hours, and a composite weather stress index.
 
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:2.5rem; margin-top:1.5rem;">
-        <div>
-          <p style="color:{TEAL};font-weight:600;font-size:15px;margin-bottom:10px;">Data Sources</p>
+**MTA Performance Data** --- Monthly subway performance totals from
+[data.ny.gov](https://data.ny.gov) dataset g937-7k7c (MTA Subway Major Incidents)
+and service alert data from dataset 9zbp-wz3y. Monthly totals were disaggregated to
+daily resolution using a weather-aware statistical downscaling model that distributes
+monthly incident counts proportionally based on daily weather severity. Station
+coordinates and line assignments come from the MTA GTFS static feed registry (dataset
+39hk-dx4f), covering 496 subway stations across 27 lines.
 
-          <p style="color:{TEXT};font-weight:500;margin-bottom:4px;font-size:13px;">Weather</p>
-          <p style="font-size:13px;">Daily precipitation, temperature, wind speed from
-          <a href="https://open-meteo.com" style="color:{TEAL}">Open-Meteo</a> historical API.
-          NYC Central Park station, 2020-2024. Derived variables: heat index, 3/7-day rolling
-          precipitation, lagged terms, weather stress composite.</p>
+**Station Risk Scoring** --- Each of the 496 stations is scored from 0 to 10 on three
+dimensions: flood risk (FEMA FIRM flood zone exposure, coastal proximity, post-Hurricane
+Sandy flood history, and empirically observed incident uplift on heavy rain days), heat
+risk (urban heat island intensity, underground station heat trapping characteristics,
+and incident uplift on extreme heat days), and economic exposure (ridership-weighted loss
+potential normalized to the system maximum using MTA 2023 Blue Book ridership data).
+Risk scores are expert-coded at the line level using published vulnerability assessments
+and then averaged across all lines serving each station.
+""")
 
-          <p style="color:{TEXT};font-weight:500;margin-bottom:4px;margin-top:1rem;font-size:13px;">MTA Performance</p>
-          <p style="font-size:13px;">Monthly totals from
-          <a href="https://data.ny.gov" style="color:{TEAL}">data.ny.gov</a>:
-          g937-7k7c (subway performance), 9zbp-wz3y (service alerts).
-          Disaggregated to daily using weather-aware statistical downscaling.
-          Station locations from MTA GTFS registry (39hk-dx4f).</p>
+    # --- Methodology ---
+    st.markdown("### Methodology")
 
-          <p style="color:{TEXT};font-weight:500;margin-bottom:4px;margin-top:1rem;font-size:13px;">Risk Scoring</p>
-          <p style="font-size:13px;">496 stations scored 0-10 on three dimensions:</p>
-          <ul style="font-size:13px;margin-top:4px;">
-            <li><span class="c-teal">Flood risk</span> &mdash; FEMA FIRM zones, coastal proximity, post-Sandy history, rain-day incident uplift</li>
-            <li><span class="c-red">Heat risk</span> &mdash; urban heat island, underground trapping, heat-day incident uplift</li>
-            <li><span class="c-yellow">Economic exposure</span> &mdash; ridership-weighted loss potential (MTA 2023 Blue Book)</li>
-          </ul>
-        </div>
+    st.markdown(f"""
+**Economic Loss Model** --- Direct economic losses are estimated using the formula:
+excess incidents above the normal-weather baseline multiplied by average train load
+factor (95 passengers per affected train), multiplied by the probability a rider is
+materially delayed (35%), multiplied by the NYC DOT 2023 value of time ($18.50 per hour),
+multiplied by excess delay duration per incident. The resulting direct rider-delay cost
+is then scaled by a factor of 27.5x to capture the full economic impact, including
+operational disruption costs (crew overtime, service rerouting, bus bridge deployment),
+accelerated infrastructure wear from water damage and thermal stress, emergency response
+expenditures, and long-term ridership erosion effects. This multiplier is calibrated
+against transit industry benchmarks from TCRP Report 86 and Cambridge Systematics
+transit cost models. The resulting estimate of approximately $2.5 million per year
+represents a conservative total-system cost figure.
 
-        <div>
-          <p style="color:{TEAL};font-weight:600;font-size:15px;margin-bottom:10px;">Methodology</p>
+**Machine Learning Models** --- Two models are trained to predict daily system-wide
+incident counts from weather features: Ridge Regression (L2-regularized linear model)
+and Random Forest (500 estimators). Both use 5-fold expanding-window time-series
+cross-validation to prevent data leakage. The feature set includes daily precipitation,
+maximum temperature, binary extreme event flags (heavy rain and extreme heat), the
+weather stress composite index, 3-day and 7-day rolling precipitation, 1-day and 2-day
+lagged precipitation, and temporal encodings (month, day-of-week, year trend).
 
-          <p style="color:{TEXT};font-weight:500;margin-bottom:4px;font-size:13px;">Economic Loss Model</p>
-          <p style="font-size:13px;">Excess incidents &times; load factor (95 pax) &times;
-          P(affected) (35%) &times; value of time ($18.50/hr, NYC DOT 2023) &times; excess delay.
-          Full estimate includes operational disruption multipliers, infrastructure wear,
-          emergency response, and ridership erosion (TCRP Report 86, Cambridge Systematics).</p>
+**Climate Projections** --- Future loss projections are based on the New York City Panel
+on Climate Change (NPCC) 2024 Assessment and NYC Climate Resiliency Design Guidelines
+v4.1. Three compound annual growth scenarios are applied to current average annual losses:
+Baseline (+2% per year, reflecting historical trend continuation), SSP2-4.5 (+4.5% per
+year, moderate emissions pathway), and SSP5-8.5 (+8% per year, high emissions pathway).
 
-          <p style="color:{TEXT};font-weight:500;margin-bottom:4px;margin-top:1rem;font-size:13px;">ML Models</p>
-          <p style="font-size:13px;">Ridge Regression + Random Forest. 5-fold time-series CV
-          (expanding window). Features: precipitation, temperature, weather stress,
-          extreme event flags, rolling averages, lag terms, temporal encodings.</p>
+**Wildcard Scenario Modeling** --- Wildcard scenarios are modeled using direct cost
+estimates from comparable historical events (primarily Hurricane Sandy for the 100-year
+flood scenario) combined with expert-assessed annual occurrence probabilities that reflect
+the increasing frequency of extreme events under climate change. Expected annual loss
+for each scenario equals direct cost multiplied by annual probability.
+""")
 
-          <p style="color:{TEXT};font-weight:500;margin-bottom:4px;margin-top:1rem;font-size:13px;">Climate Projections</p>
-          <p style="font-size:13px;">NPCC 2024 + NYC Climate Resiliency Guidelines v4.1.
-          Three scenarios: Baseline (+2%/yr), SSP2-4.5 (+4.5%/yr), SSP5-8.5 (+8%/yr)
-          compound annual growth on current loss rates.</p>
-        </div>
-      </div>
+    # --- Assumptions ---
+    st.markdown("### Key Assumptions")
 
-      <div style="margin-top:2rem; padding:1.2rem 1.5rem; background:{BG_CARD}; border-radius:6px; border-left:3px solid {ORANGE};">
-        <p style="color:{ORANGE};font-weight:600;font-size:13px;margin-bottom:8px;">Key Assumptions & Limitations</p>
-        <ul style="font-size:12px;line-height:1.8;margin:0;color:{TEXT_DIM};">
-          <li>Weather data from a single station (Central Park). Localised conditions at individual stations may differ.</li>
-          <li>MTA monthly data disaggregated to daily using statistical downscaling, not direct daily reporting.</li>
-          <li>Economic loss multiplier (27.5x) accounts for indirect costs (infrastructure damage, emergency response, ridership erosion) based on transit industry benchmarks. Direct rider-delay costs alone are lower.</li>
-          <li>Risk scores are expert-coded by line using published vulnerability literature, not derived from station-level sensor data.</li>
-          <li>Climate projections assume compound annual growth. Actual trajectories depend on emissions policy and adaptation investment.</li>
-          <li>ML models trained on 5 years of data. Performance may degrade outside observed weather ranges.</li>
-        </ul>
-      </div>
+    st.markdown(f"""
+1. **Single weather station.** All weather data comes from Central Park. Actual
+   conditions at individual subway stations will vary, particularly for stations in
+   coastal flood zones or urban heat island hotspots. This is a simplification that
+   likely understates localized extremes.
 
-      <div style="margin-top:2rem;">
-        <p style="color:{TEAL};font-weight:600;font-size:15px;margin-bottom:10px;">Bibliography</p>
-        <ol style="font-size:12px; line-height:2; color:{TEXT_DIM}; padding-left:1.2rem;">
-          <li>MTA. <em>Sandy After-Action Report</em>. Metropolitan Transportation Authority, 2013.</li>
-          <li>NPCC. <em>New York City Panel on Climate Change 2024 Assessment</em>. Annals of the New York Academy of Sciences, 2024.</li>
-          <li>NYC Mayor's Office. <em>Climate Resiliency Design Guidelines</em>, v4.1. 2023.</li>
-          <li>FEMA. <em>Flood Insurance Rate Maps (FIRM)</em>, New York City.</li>
-          <li>Cambridge Systematics. <em>TCRP Report 86: Public Transportation Peer-to-Peer Knowledge Sharing</em>. Transit Cooperative Research Program.</li>
-          <li>NYC DOT. <em>Value of Time in Transit Analysis</em>. NYC Department of Transportation, 2023.</li>
-          <li>MTA. <em>Annual Subway Ridership Data (Blue Book)</em>. Metropolitan Transportation Authority, 2023.</li>
-          <li>Zscheischler, J. et al. "Future climate risk from compound events." <em>Nature Climate Change</em>, 8, 469-477, 2018.</li>
-          <li>Rosenzweig, C. et al. "Climate risk information for New York City infrastructure." <em>NPCC Technical Report</em>, 2019.</li>
-        </ol>
-      </div>
+2. **Statistical downscaling of MTA data.** The MTA publishes monthly performance
+   totals, not daily counts. We disaggregate to daily resolution using a statistical
+   model that allocates incidents proportionally based on daily weather severity. This
+   means daily figures are modeled estimates, not direct observations.
 
-      <div style="margin-top:2rem; padding-top:1.5rem; border-top:1px solid {MUTED};">
-        <p style="font-size:12px; color:{MUTED};">
-          Columbia University &nbsp;&middot;&nbsp; MS in Climate Finance
-          &nbsp;&middot;&nbsp; Climate Risk &nbsp;&middot;&nbsp; 2026
-          &nbsp;&nbsp;|&nbsp;&nbsp;
-          Built with Python, scikit-learn, Plotly, Streamlit
-          &nbsp;&nbsp;|&nbsp;&nbsp;
-          <a href="https://github.com/pbajpai29/Personal-projects" style="color:{MUTED};">Source on GitHub</a>
-        </p>
-      </div>
-    </div>
-    """, unsafe_allow_html=True)
+3. **Economic loss multiplier.** The 27.5x scaling factor converts direct rider-delay
+   costs into full system costs. This is based on transit industry literature (TCRP,
+   Cambridge Systematics) but involves judgment. Direct rider-delay costs alone are
+   approximately $90,000 per year. The scaled figure of $2.5 million per year captures
+   operational, infrastructure, and ridership erosion costs that are real but harder
+   to measure precisely.
+
+4. **Expert-coded risk scores.** Station-level risk dimensions are derived from
+   line-level expert assessments using published vulnerability literature (MTA Sandy
+   After-Action Report, FEMA FIRM maps, NPCC assessments), not from station-level
+   sensor data or engineering inspections. Individual station conditions may differ
+   from the line-level average.
+
+5. **Climate projection linearity.** Future loss projections assume compound annual
+   growth, which produces smooth exponential curves. In reality, climate impacts are
+   likely to be nonlinear, with tipping points and threshold effects. Actual trajectories
+   depend heavily on emissions policy, adaptation investment, and the frequency of
+   tail-risk events.
+
+6. **Model generalization.** ML models are trained on five years of data (2020-2024).
+   Performance may degrade for weather conditions outside the observed historical range,
+   particularly for the extreme scenarios that matter most for planning purposes.
+""")
+
+    # --- Bibliography ---
+    st.markdown("### Bibliography")
+
+    st.markdown(f"""
+1. MTA. *Sandy After-Action Report*. Metropolitan Transportation Authority, 2013.
+2. MTA. *Climate Resilience Roadmap Update*. Metropolitan Transportation Authority, October 2025.
+3. NPCC. *New York City Panel on Climate Change 2024 Assessment*. Annals of the New York Academy of Sciences, 2024.
+4. NYC Mayor's Office. *Climate Resiliency Design Guidelines*, v4.1. City of New York, 2023.
+5. FEMA. *Flood Insurance Rate Maps (FIRM)*, New York City. Federal Emergency Management Agency.
+6. NYC DOT. *Value of Time in Transit Analysis*. NYC Department of Transportation, 2023.
+7. MTA. *Annual Subway Ridership Data (Blue Book)*. Metropolitan Transportation Authority, 2023.
+8. Cambridge Systematics. *TCRP Report 86: Public Transportation Peer-to-Peer Knowledge Sharing*. Transit Cooperative Research Program, Transportation Research Board.
+9. Zscheischler, J. et al. "Future climate risk from compound events." *Nature Climate Change*, 8, 469-477, 2018.
+10. Rosenzweig, C. et al. "Climate risk information for New York City infrastructure planning." *NPCC Technical Report*, 2019.
+11. TfL. *Climate Change Adaptation Plan (ARP4)*. Transport for London, 2024.
+12. London Climate Resilience Review. *50 Recommendations for a Climate-Resilient London*. Greater London Authority, July 2024.
+13. CMAP. *Transportation Resilience Improvement Plan (TRIP) Assessment*. Chicago Metropolitan Agency for Planning, December 2024.
+14. Naturanal. *Tokyo Flood Resilience and G-Cans System*. September 2025.
+15. Singapore MSE. *Year of Climate Adaptation 2026*. Ministry of Sustainability and the Environment, March 2026.
+""")
+
+    # Footer
+    st.markdown("---")
+    st.markdown(f"""
+<p style="font-size:12px; color:{MUTED}; text-align:center; padding:1rem 0;">
+  Columbia University &nbsp;&middot;&nbsp; MS in Climate Finance
+  &nbsp;&middot;&nbsp; Climate Risk &nbsp;&middot;&nbsp; 2026
+  &nbsp;&nbsp;|&nbsp;&nbsp;
+  Built with Python, scikit-learn, Plotly, Streamlit
+  &nbsp;&nbsp;|&nbsp;&nbsp;
+  <a href="https://github.com/pbajpai29/Personal-projects" style="color:{MUTED};">Source on GitHub</a>
+</p>
+""", unsafe_allow_html=True)
 
 
 if __name__ == "__main__":
